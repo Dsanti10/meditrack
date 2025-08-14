@@ -1,5 +1,4 @@
 import { BellIcon, CalendarIcon, ClipboardListIcon } from "lucide-react";
-import medical from "../components/images/medical.png";
 
 export function Features() {
   const features = [
@@ -31,7 +30,7 @@ export function Features() {
   return (
     <section
       id="features"
-      className="py-35 md:py-60 w-full bg-center bg-[url(./components/images/medical.png)] bg-cover bg- bg-base-100 bg-blend-overlay bg-fixed"
+      className="py-35 md:py-60 w-full bg-center bg-[url(../src/assets/medical.png)] bg-cover bg- bg-base-100 bg-blend-overlay bg-fixed"
     >
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">

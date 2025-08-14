@@ -1,6 +1,6 @@
 import { NavLink } from "react-router";
-
 import { useAuth } from "../auth/AuthContext";
+import MediTrackLogo from "../assets/MediTrackMainLogo.svg";
 
 export default function Navbar() {
   const { token, logout } = useAuth();
@@ -31,7 +31,9 @@ export default function Navbar() {
               className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
             ></ul>
           </div>
-          <a className="btn btn-ghost text-xl">MediTrack</a>
+          <NavLink to="/" className="btn btn-ghost text-xl flex items-center">
+            <img src={MediTrackLogo} alt="MediTrack" className="h-14" />
+          </NavLink>
         </div>
         <div className="navbar-center hidden lg:flex">
           <ul className="menu menu-horizontal px-1">

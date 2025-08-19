@@ -4,9 +4,13 @@ import DashboardLayout from "./layout/DashboardLayout";
 import Home from "./components/Home";
 import Login from "./auth/Login";
 import Register from "./auth/Register";
-import Dashboard from "./components/Dashboard";
+import Dashboard from "./pages/Dashboard";
 import CalendarPage from "./pages/CalendarPage";
 import { Route, Routes } from "react-router";
+import Medications from "./pages/Medications";
+import LoginRegisterLayout from "./layout/LoginRegisterLayout";
+import Refills from "./pages/Refills";
+import Profile from "./pages/Profile";
 
 export default function App() {
   return (
@@ -14,6 +18,10 @@ export default function App() {
       {/* Public routes with main layout */}
       <Route element={<Layout />}>
         <Route index element={<Home />} path="/" />
+      </Route>
+
+      {/* Login&Register routes with differnt NavBar layout */}
+      <Route element={<LoginRegisterLayout />}>
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
       </Route>
@@ -23,10 +31,9 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/calendar" element={<CalendarPage />} />
         {/* Add more dashboard routes here */}
-        <Route path="/medications" element={<div>Medications Page</div>} />
-        <Route path="/refills" element={<div>Refills Page</div>} />
-        <Route path="/profile" element={<div>Profile Page</div>} />
-        <Route path="/settings" element={<div>Settings Page</div>} />
+        <Route path="/medications" element={<Medications />} />
+        <Route path="/refills" element={<Refills />} />
+        <Route path="/profile" element={<Profile />} />
       </Route>
     </Routes>
   );

@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import {
   CalendarDaysIcon,
-  BeakerIcon,
   ClockIcon,
   HomeIcon,
   UserIcon,
-  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 import MediTrackIcon from "../assets/MediTrackIcon.svg";
+import LogoutIcon from "@mui/icons-material/Logout";
+import MedicationIcon from "@mui/icons-material/Medication";
 
 export default function SideNavbar() {
   const location = useLocation();
@@ -25,16 +25,16 @@ export default function SideNavbar() {
     {
       id: "medications",
       label: "Medications",
-      icon: BeakerIcon,
+      icon: MedicationIcon,
       path: "/medications",
     },
     { id: "refills", label: "Refills", icon: ClockIcon, path: "/refills" },
     { id: "profile", label: "Profile", icon: UserIcon, path: "/profile" },
     {
-      id: "settings",
-      label: "Settings",
-      icon: Cog6ToothIcon,
-      path: "/settings",
+      id: "logout",
+      label: "Logout",
+      icon: LogoutIcon,
+      path: "/login",
     },
   ];
 

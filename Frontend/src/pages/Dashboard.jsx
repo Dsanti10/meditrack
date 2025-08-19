@@ -1,7 +1,9 @@
-import SideNavbar from "../components/SideNavbar";
+import { Link } from "react-router";
+import { useState } from "react";
 import TodaySchedule from "../components/TodaySchedule";
 import UpcomingRefills from "../components/UpcomingRefills";
 import MyMedications from "../components/MyMedications";
+import SlimCalendar from "../components/SlimCalendar";
 import {
   Bars3Icon,
   BellIcon,
@@ -10,6 +12,8 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function Dashboard() {
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
   const currentDate = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -33,53 +37,6 @@ export default function Dashboard() {
           <div className="flex-1">
             <h1 className="text-2xl font-bold ml-4">Dashboard</h1>
           </div>
-
-          <div className="flex-none gap-2">
-            {/* Search */}
-            <div className="form-control">
-              <div className="input-group">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="input input-sm input-bordered w-auto"
-                />
-                <button className="btn btn-square btn-sm">
-                  <MagnifyingGlassIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Notifications */}
-            <button className="btn btn-ghost btn-circle">
-              <div className="indicator">
-                <BellIcon className="w-6 h-6" />
-                <span className="badge badge-primary badge-xs indicator-item">
-                  3
-                </span>
-              </div>
-            </button>
-
-            {/* Profile */}
-            <div className="dropdown dropdown-end">
-              <label tabIndex={0} className="btn btn-ghost btn-circle avatar">
-                <UserCircleIcon className="w-8 h-8" />
-              </label>
-              <ul
-                tabIndex={0}
-                className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52"
-              >
-                <li>
-                  <a>Profile</a>
-                </li>
-                <li>
-                  <a>Settings</a>
-                </li>
-                <li>
-                  <a>Logout</a>
-                </li>
-              </ul>
-            </div>
-          </div>
         </div>
 
         {/* Main Content */}
@@ -91,21 +48,27 @@ export default function Dashboard() {
           </div>
 
           {/* Dashboard Cards Grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+          <div className="mb-8 grid sm:grid-cols-2 gap-3">
             {/* Today's Schedule Card */}
-            <div className="xl:col-span-2">
+            <div>
               <TodaySchedule />
             </div>
-
-            {/* Upcoming Refills Card */}
-            <div className="xl:col-span-1">
-              <UpcomingRefills />
+            <div>
+              <SlimCalendar
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+                reminders={[]}
+              />
             </div>
           </div>
 
           {/* My Medications Card - Full Width */}
-          <div className="mb-8">
+          <div className="mb-8 grid sm:grid-cols-2 gap-3">
             <MyMedications />
+            {/* Upcoming Refills Card */}
+            <div className="xl:col-span-1">
+              <UpcomingRefills />
+            </div>
           </div>
 
           {/* Quick Actions */}
@@ -148,8 +111,8 @@ export default function Dashboard() {
 
             <div className="card bg-info text-info-content">
               <div className="card-body items-center text-center">
-                <h3 className="card-title text-lg">Support</h3>
-                <p>Get help</p>
+                <h3 className="card-title text-lg">Pharmacies</h3>
+                <p>See List</p>
                 <div className="card-actions">
                   <button className="btn btn-info-content btn-sm">
                     Contact
@@ -160,9 +123,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
-      {/* Sidebar */}
-      <SideNavbar />
     </div>
   );
 }

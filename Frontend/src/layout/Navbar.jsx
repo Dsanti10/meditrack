@@ -1,4 +1,4 @@
-import { NavLink } from "react-router";
+import { NavLink, Link } from "react-router";
 import { useAuth } from "../auth/AuthContext";
 import MediTrackLogo from "../assets/MediTrackMainLogo.svg";
 
@@ -38,15 +38,17 @@ export default function Navbar() {
         <div className="navbar-center hidden lg:flex">
           <ul className="menu menu-horizontal px-1">
             <li>
-              <a>Features</a>
+              <Link>Features</Link>
             </li>
             <li>
-              <a>How It Works</a>
+              <Link>How It Works</Link>
             </li>
           </ul>
         </div>
         <div className="navbar-end">
-          <a className="btn btn-ghost">Log In</a>
+          <Link to="/login" className="btn btn-ghost">
+            Log In
+          </Link>
           <a className="btn">Sign Up</a>
         </div>
       </div>

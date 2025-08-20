@@ -48,17 +48,10 @@ export default function Dashboard() {
           </div>
 
           {/* Dashboard Cards Grid */}
-          <div className="mb-8 grid sm:grid-cols-2 gap-3">
+          <div className="mb-8 grid sm:grid-cols-1 gap-3">
             {/* Today's Schedule Card */}
             <div>
               <TodaySchedule />
-            </div>
-            <div>
-              <SlimCalendar
-                selectedDate={selectedDate}
-                onDateSelect={setSelectedDate}
-                reminders={[]}
-              />
             </div>
           </div>
 

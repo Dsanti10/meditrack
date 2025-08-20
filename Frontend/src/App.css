@@ -6,9 +6,42 @@ body,
   height: 100vh;
   box-sizing: border-box;
   text-align: left;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 main {
   flex: 1 0 auto;
   width: 100%;
+  min-height: 0;
+}
+
+/* Responsive utilities */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Fix for drawer on mobile */
+@media (max-width: 1024px) {
+  .drawer-content {
+    margin-left: 0 !important;
+  }
+}
+
+/* Ensure cards are responsive */
+.card {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Mobile-friendly buttons */
+@media (max-width: 640px) {
+  .btn {
+    min-height: 2.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
 }

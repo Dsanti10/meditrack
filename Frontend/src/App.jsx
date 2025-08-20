@@ -5,7 +5,7 @@ import Home from "./components/Home";
 import Login from "./auth/Login";
 import Register from "./auth/Register";
 import Dashboard from "./pages/Dashboard";
-import CalendarPage from "./pages/CalendarPage";
+import Calendar from "./pages/Calendar";
 import { Route, Routes } from "react-router";
 import Medications from "./pages/Medications";
 import LoginRegisterLayout from "./layout/LoginRegisterLayout";
@@ -29,7 +29,7 @@ export default function App() {
       {/* Dashboard routes with sidebar layout */}
       <Route element={<DashboardLayout />}>
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/calendar" element={<Calendar page="calendar" />} />
         {/* Add more dashboard routes here */}
         <Route path="/medications" element={<Medications />} />
         <Route path="/refills" element={<Refills />} />

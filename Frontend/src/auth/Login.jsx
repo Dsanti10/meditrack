@@ -28,17 +28,17 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-base-300 flex items-center justify-center p-4 ">
-      <div className="w-full max-w-lg p-4 items-center justify-center">
+    <div className="min-h-screen bg-base-300 flex items-center justify-center p-3 sm:p-4">
+      <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg p-2 sm:p-4 items-center justify-center">
         {/* Main Login Card */}
         <div className="card bg-base-100 shadow-2xl border border-base-content/10 w-full">
-          <div className="card-body p-8">
+          <div className="card-body p-4 sm:p-6 md:p-8">
             {/* Header Section */}
-            <div className="text-center mb-6">
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-lg">
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="flex justify-center mb-3 sm:mb-4">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-primary flex items-center justify-center shadow-lg">
                   <svg
-                    className="h-8 w-8 text-primary-content"
+                    className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary-content"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -52,27 +52,29 @@ export default function Login() {
                   </svg>
                 </div>
               </div>
-              <h1 className="text-3xl font-bold text-base-content mt-4">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-base-content mt-3 sm:mt-4">
                 Welcome back
               </h1>
-              <p className="text-base-content/70 mt-2">
+              <p className="text-base-content/70 mt-1 sm:mt-2 text-sm sm:text-base">
                 Sign in to your MediTrack account
               </p>
             </div>
 
             {/* Login Form */}
-            <form className="space-y-4" action={onLogin}>
+            <form className="space-y-3 sm:space-y-4" action={onLogin}>
               {/* Username Field */}
               <div className="form-control">
                 <label className="label" htmlFor="username">
-                  <span className="label-text text-base-content">Username</span>
+                  <span className="label-text text-base-content text-sm sm:text-base">
+                    Username
+                  </span>
                 </label>
                 <input
                   id="username"
                   name="username"
                   type="text"
                   required
-                  className="input input-bordered w-full bg-base-200 border-base-content/20 text-base-content placeholder:text-base-content/50 focus:border-primary focus:outline-none"
+                  className="input input-bordered w-full bg-base-200 border-base-content/20 text-base-content placeholder:text-base-content/50 focus:border-primary focus:outline-none text-sm sm:text-base"
                   placeholder="Enter your username"
                 />
               </div>
@@ -80,14 +82,16 @@ export default function Login() {
               {/* Password Field */}
               <div className="form-control">
                 <label className="label" htmlFor="password">
-                  <span className="label-text text-base-content">Password</span>
+                  <span className="label-text text-base-content text-sm sm:text-base">
+                    Password
+                  </span>
                 </label>
                 <input
                   id="password"
                   name="password"
                   type="password"
                   required
-                  className="input input-bordered w-full bg-base-200 border-base-content/20 text-base-content placeholder:text-base-content/50 focus:border-primary focus:outline-none"
+                  className="input input-bordered w-full bg-base-200 border-base-content/20 text-base-content placeholder:text-base-content/50 focus:border-primary focus:outline-none text-sm sm:text-base"
                   placeholder="Enter your password"
                 />
               </div>
@@ -97,7 +101,7 @@ export default function Login() {
                 <div className="alert alert-error shadow-lg">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="stroke-current shrink-0 h-6 w-6"
+                    className="stroke-current shrink-0 h-5 w-5 sm:h-6 sm:w-6"
                     fill="none"
                     viewBox="0 0 24 24"
                   >

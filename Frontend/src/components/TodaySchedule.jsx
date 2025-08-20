@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { CalendarDaysIcon, ClockIcon } from "@heroicons/react/24/outline";
 
-export default function TodaySchedule() {
+export default function TodaySchedule({ disableCalendarLink = false }) {
   const todayEvents = [
     {
       id: 1,
@@ -75,8 +75,8 @@ export default function TodaySchedule() {
   });
 
   return (
-    <div className="card bg-base-100 shadow-xl">
-      <div className="card-body">
+    <div className="card bg-base-100 shadow-xl h-full flex flex-col">
+      <div className="card-body flex-1 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="card-title text-2xl mb-2">Today's Schedule</h2>
@@ -93,7 +93,7 @@ export default function TodaySchedule() {
 
         <div className="divider my-2"></div>
 
-        <div className="space-y-3 max-h-96 overflow-y-auto">
+        <div className="space-y-3 flex-1 overflow-y-auto min-h-0">
           {todayEvents.map((event) => (
             <div
               key={event.id}
@@ -132,11 +132,17 @@ export default function TodaySchedule() {
         </div>
 
         <div className="card-actions justify-end mt-4">
-          <Link to="/calendar">
-            <button className="btn btn-primary btn-sm">
+          {disableCalendarLink ? (
+            <button className="btn btn-primary btn-sm btn-disabled" disabled>
               View Full Calendar
             </button>
-          </Link>
+          ) : (
+            <Link to="/calendar">
+              <button className="btn btn-primary btn-sm">
+                View Full Calendar
+              </button>
+            </Link>
+          )}
         </div>
 
         {/* Quick Stats */}

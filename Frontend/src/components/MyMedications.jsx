@@ -159,89 +159,139 @@ export default function MyMedications() {
     return total + med.timeSlots.length;
   }, 0);
 
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const handleAddMedication = () => {
+    setMedicationForm({
+      name: "",
+      dosage: "",
+      frequency: "Once daily",
+      timeSlots: [],
+      currentStock: 0,
+      status: "active",
+      color: "primary",
+      notes: "",
+    });
+    setEditingMedication(null);
+    setIsAddModalOpen(true);
+  };
+
+  const handleSaveNewMedication = (e) => {
+    e.preventDefault();
+
+    const newMedication = {
+      ...medicationForm,
+      id: Math.max(...medications.map((med) => med.id), 0) + 1,
+    };
+
+    setMedications([...medications, newMedication]);
+    setIsAddModalOpen(false);
+  };
+
   return (
-    <div className="card bg-base-100 shadow-xl">
-      <div className="card-body">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="card-title text-2xl mb-2">My Medications</h2>
-            <p className="text-base-content/70">Current medication regimen</p>
+    <div className="card bg-base-100 shadow-xl h-full">
+      <div className="card-body p-4 sm:p-6 flex flex-col h-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 flex-shrink-0">
+          <div className="mb-2 sm:mb-0">
+            <h2 className="card-title text-lg sm:text-xl md:text-2xl mb-1 sm:mb-2">
+              My Medications
+            </h2>
+            <p className="text-base-content/70 text-sm sm:text-base hidden sm:block">
+              Current medication regimen
+            </p>
           </div>
           <div className="flex gap-2">
-            <button className="btn btn-primary btn-sm">
-              <PlusIcon className="w-4 h-4" />
-              Add Medication
+            <button
+              className="btn btn-primary btn-xs sm:btn-sm"
+              onClick={handleAddMedication}
+            >
+              <PlusIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Add Medication</span>
+              <span className="sm:hidden">Add</span>
             </button>
           </div>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="stat bg-primary/10 rounded-lg">
-            <div className="stat-value text-xl text-primary">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 flex-shrink-0">
+          <div className="stat bg-primary/10 rounded-lg p-2 sm:p-3 text-center">
+            <div className="stat-value text-sm sm:text-xl text-primary">
               {activeMedications}
             </div>
-            <div className="stat-title text-sm">Active Meds</div>
+            <div className="stat-title text-xs">Active</div>
           </div>
-          <div className="stat bg-secondary/10 rounded-lg">
-            <div className="stat-value text-xl text-secondary">
+          <div className="stat bg-secondary/10 rounded-lg p-2 sm:p-3 text-center">
+            <div className="stat-value text-sm sm:text-xl text-secondary">
               {totalDoses}
             </div>
-            <div className="stat-title text-sm">Daily Doses</div>
+            <div className="stat-title text-xs">Doses</div>
           </div>
-          <div className="stat bg-accent/10 rounded-lg">
-            <div className="stat-value text-xl text-accent">
+          <div className="stat bg-accent/10 rounded-lg p-2 sm:p-3 text-center">
+            <div className="stat-value text-sm sm:text-xl text-accent">
               {medications.filter((med) => med.currentStock <= 5).length}
             </div>
-            <div className="stat-title text-sm">Low Stock</div>
+            <div className="stat-title text-xs">Low Stock</div>
           </div>
         </div>
 
-        <div className="divider my-2"></div>
+        <div className="divider my-2 flex-shrink-0"></div>
 
-        <div className="space-y-4 max-h-80 overflow-y-auto">
+        <div className="space-y-3 sm:space-y-4 flex-1 min-h-0 overflow-y-auto pr-1">
           {medications.map((medication) => {
             const stockInfo = getStockIndicator(medication.currentStock);
             return (
               <div
                 key={medication.id}
-                className="border border-base-300 rounded-lg p-4 hover:bg-base-200 transition-colors"
+                className="border border-base-300 rounded-lg p-3 sm:p-4 hover:bg-base-200 transition-colors"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-lg bg-${medication.color}/20`}>
+                <div className="flex items-start justify-between mb-2 sm:mb-3">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <div
+                      className={`p-1.5 sm:p-2 md:p-3 rounded-lg bg-${medication.color}/20 flex-shrink-0`}
+                    >
                       <MedicationIcon
-                        className={`w-6 h-6 text-${medication.color}`}
+                        className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-${medication.color}`}
                       />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-lg">{medication.name}</h3>
-                      <p className="text-base-content/70">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold text-sm sm:text-base md:text-lg truncate">
+                        {medication.name}
+                      </h3>
+                      <p className="text-base-content/70 text-xs sm:text-sm truncate">
                         {medication.dosage} • {medication.frequency}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={getStatusBadge(medication.status)}>
+                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-2 flex-shrink-0">
+                    <span
+                      className={`${getStatusBadge(
+                        medication.status
+                      )} badge-xs sm:badge-sm`}
+                    >
                       {medication.status}
                     </span>
                     <button
-                      className="btn btn-ghost btn-sm"
+                      className="btn btn-ghost btn-xs"
                       onClick={() => handleEditMedication(medication)}
                     >
-                      <PencilIcon className="w-4 h-4" />
+                      <PencilIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                     </button>
                   </div>
                 </div>
 
                 {/* Time Slots */}
                 {medication.timeSlots.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-sm font-medium mb-2">Scheduled Times:</p>
-                    <div className="flex gap-2 flex-wrap">
+                  <div className="mb-2 sm:mb-3">
+                    <p className="text-xs sm:text-sm font-medium mb-1 sm:mb-2">
+                      Scheduled Times:
+                    </p>
+                    <div className="flex gap-1 sm:gap-2 flex-wrap">
                       {medication.timeSlots.map((time, index) => (
-                        <span key={index} className="badge badge-outline">
-                          <ClockIcon className="w-3 h-3 mr-1" />
+                        <span
+                          key={index}
+                          className="badge badge-outline badge-xs sm:badge-sm"
+                        >
+                          <ClockIcon className="w-2 h-2 sm:w-3 sm:h-3 mr-1" />
                           {time}
                         </span>
                       ))}
@@ -279,12 +329,194 @@ export default function MyMedications() {
         </div>
 
         <div className="card-actions justify-between mt-4">
-          <button className="btn btn-ghost btn-sm">Medication History</button>
           <div className="flex gap-2">
-            <button className="btn btn-outline btn-sm">Export List</button>
             <button className="btn btn-primary btn-sm">Manage All</button>
           </div>
         </div>
+
+        {/* Add Medication Modal */}
+        {isAddModalOpen && (
+          <div className="modal modal-open">
+            <div className="modal-box max-w-xl">
+              <h3 className="font-bold text-lg mb-4">Add New Medication</h3>
+
+              <form onSubmit={handleSaveNewMedication} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Medication Name</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      value={medicationForm.name}
+                      onChange={(e) =>
+                        setMedicationForm({
+                          ...medicationForm,
+                          name: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Dosage</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      value={medicationForm.dosage}
+                      onChange={(e) =>
+                        setMedicationForm({
+                          ...medicationForm,
+                          dosage: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Frequency</span>
+                  </label>
+                  <select
+                    className="select select-bordered"
+                    value={medicationForm.frequency}
+                    onChange={(e) =>
+                      setMedicationForm({
+                        ...medicationForm,
+                        frequency: e.target.value,
+                      })
+                    }
+                  >
+                    {frequencyOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Scheduled Times</span>
+                  </label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="time"
+                      id="addTimeSlot"
+                      className="input input-bordered flex-1"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => {
+                        const time =
+                          document.getElementById("addTimeSlot").value;
+                        if (time && !medicationForm.timeSlots.includes(time)) {
+                          setMedicationForm({
+                            ...medicationForm,
+                            timeSlots: [...medicationForm.timeSlots, time],
+                          });
+                          document.getElementById("addTimeSlot").value = "";
+                        }
+                      }}
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {medicationForm.timeSlots.map((time, index) => (
+                      <span key={index} className="badge badge-primary gap-2">
+                        {time}
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-circle btn-ghost"
+                          onClick={() => removeTimeSlot(time)}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Current Stock</span>
+                    </label>
+                    <input
+                      type="number"
+                      className="input input-bordered"
+                      min="0"
+                      value={medicationForm.currentStock}
+                      onChange={(e) =>
+                        setMedicationForm({
+                          ...medicationForm,
+                          currentStock: parseInt(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Status</span>
+                    </label>
+                    <select
+                      className="select select-bordered"
+                      value={medicationForm.status}
+                      onChange={(e) =>
+                        setMedicationForm({
+                          ...medicationForm,
+                          status: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="active">Active</option>
+                      <option value="paused">Paused</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Notes</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered h-20"
+                    value={medicationForm.notes}
+                    onChange={(e) =>
+                      setMedicationForm({
+                        ...medicationForm,
+                        notes: e.target.value,
+                      })
+                    }
+                  ></textarea>
+                </div>
+
+                <div className="modal-action">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setIsAddModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    Add Medication
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Edit Medication Modal */}
         {isEditModalOpen && (

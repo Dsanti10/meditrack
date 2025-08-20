@@ -1,7 +1,7 @@
+import { Link } from "react-router";
 import {
   ExclamationTriangleIcon,
   ClockIcon,
-  ShoppingCartIcon,
 } from "@heroicons/react/24/outline";
 
 export default function UpcomingRefills() {
@@ -71,32 +71,38 @@ export default function UpcomingRefills() {
   };
 
   return (
-    <div className="card bg-base-100 shadow-xl">
-      <div className="card-body">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="card-title text-2xl mb-2">Upcoming Refills</h2>
-            <p className="text-base-content/70">
+    <div className="card bg-base-100 shadow-xl h-full">
+      <div className="card-body p-4 sm:p-6 flex flex-col h-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 flex-shrink-0">
+          <div className="mb-2 sm:mb-0">
+            <h2 className="card-title text-lg sm:text-xl md:text-2xl mb-1 sm:mb-2">
+              Upcoming Refills
+            </h2>
+            <p className="text-base-content/70 text-sm sm:text-base hidden sm:block">
               Monitor your medication inventory
             </p>
           </div>
-          <div className="text-right">
-            <div className="flex items-center gap-2">
-              <div className="badge badge-error">2 urgent</div>
-              <div className="badge badge-warning">1 soon</div>
+          <div className="text-left sm:text-right">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="badge badge-error badge-xs sm:badge-sm">
+                2 urgent
+              </div>
+              <div className="badge badge-warning badge-xs sm:badge-sm">
+                1 soon
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="divider my-2"></div>
+        <div className="divider my-2 flex-shrink-0"></div>
 
-        <div className="space-y-3 max-h-80 overflow-y-auto">
+        <div className="space-y-2 sm:space-y-3 flex-1 min-h-0 overflow-y-auto pr-1">
           {refills.map((refill) => {
             const stockStatus = getStockStatus(refill.currentStock);
             return (
               <div
                 key={refill.id}
-                className={`p-4 rounded-lg border transition-colors hover:bg-base-200 ${
+                className={`p-3 sm:p-4 rounded-lg border transition-colors hover:bg-base-200 ${
                   refill.priority === "high"
                     ? "border-error bg-error/5"
                     : refill.priority === "medium"
@@ -157,9 +163,9 @@ export default function UpcomingRefills() {
           })}
         </div>
 
-        <div className="card-actions justify-between mt-4">
-          <button className="btn btn-ghost btn-sm">View All Medications</button>
-        </div>
+        <Link to="/medications" className="card-actions justify-between mt-4">
+          <button className="btn btn-primary">View All Medications</button>
+        </Link>
 
         {/* Summary Stats */}
         <div className="grid grid-cols-4 gap-2 mt-4">

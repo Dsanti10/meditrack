@@ -3,7 +3,7 @@
  * It also handles tags to refresh appropriate queries after a mutation.
  */
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef } from "react";
 import { useAuth } from "../auth/AuthContext";
 
 export const API = "http://localhost:3000";
@@ -26,12 +26,16 @@ export function ApiProvider({ children }) {
     return result;
   };
 
-  const [tags, setTags] = useState([]);
+  const tags = useRef({});
   const provideTag = (tag, query) => {
-    setTags({ ...tags, [tag]: query });
+    tags.current[tag] = query;
   };
   const invalidateTags = (tagsToInvalidate) => {
-    tagsToInvalidate.forEach((tag) => tags[tag]?.());
+    tagsToInvalidate.forEach((tag) => {
+      if (tags.current[tag]) {
+        tags.current[tag]();
+      }
+    });
   };
 
   const value = { request, provideTag, invalidateTags };

@@ -1,7 +1,5 @@
-import React, { useEffect, useState } from "react";
-import TodaySchedule from "./TodaySchedule";
-import UpcomingRefills from "./UpcomingRefills";
-import MyMedications from "./MyMedications";
+import { useEffect, useState } from "react";
+import TodayScheduleMockup from "./TodayScheduleMockup";
 
 export default function DashboardMockup({ className = "" }) {
   const [previewTheme, setPreviewTheme] = useState("light");
@@ -73,7 +71,7 @@ export default function DashboardMockup({ className = "" }) {
               ) : (
                 <>
                   <div>
-                    <TodaySchedule disableCalendarLink />
+                    <TodayScheduleMockup />
                   </div>
                 </>
               )}

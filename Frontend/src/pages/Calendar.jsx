@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CalendarDaysIcon,
   PlusIcon,
@@ -7,48 +7,47 @@ import {
   PencilIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { useReminders } from "../contexts/ReminderContext";
+import { formatTo12Hour } from "../utils/timeFormat";
 
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showAddReminder, setShowAddReminder] = useState(false);
   const [editingReminder, setEditingReminder] = useState(null);
-  const [reminders, setReminders] = useState([
-    {
-      id: 1,
-      title: "Take Morning Medication",
-      time: "08:00",
-      date: "2025-08-13",
-      type: "medication",
-      completed: false,
-      description: "Take 2 tablets of medication with water",
-    },
-    {
-      id: 2,
-      title: "Doctor Appointment",
-      time: "14:30",
-      date: "2025-08-15",
-      type: "appointment",
-      completed: false,
-      description: "Annual checkup with Dr. Smith",
-    },
-    {
-      id: 3,
-      title: "Refill Prescription",
-      time: "10:00",
-      date: "2025-08-16",
-      type: "refill",
-      completed: false,
-      description: "Pick up prescription from pharmacy",
-    },
-  ]);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  // Ensure selectedDate is never null
+  const safeSelectedDate = selectedDate || new Date();
+
+  const {
+    reminders,
+    loading,
+    error,
+    createReminder,
+    updateReminder,
+    deleteReminder,
+    toggleReminderComplete,
+    getRemindersByDate,
+  } = useReminders();
 
   const [reminderForm, setReminderForm] = useState({
     title: "",
-    time: "",
-    date: selectedDate.toISOString().split("T")[0],
-    type: "medication",
+    reminder_time: "",
+    reminder_date: new Date().toISOString().split("T")[0],
+    type: "general",
     description: "",
   });
+
+  // Update form date when selected date changes
+  useEffect(() => {
+    if (selectedDate) {
+      setReminderForm((prev) => ({
+        ...prev,
+        reminder_date: safeSelectedDate.toISOString().split("T")[0],
+      }));
+    }
+  }, [selectedDate, safeSelectedDate]);
 
   // Calendar functionality
   const monthNames = [
@@ -100,7 +99,7 @@ export default function Calendar() {
   };
 
   const navigateMonth = (direction) => {
-    const newDate = new Date(selectedDate);
+    const newDate = new Date(safeSelectedDate);
     newDate.setMonth(newDate.getMonth() + direction);
     setSelectedDate(newDate);
   };
@@ -113,13 +112,12 @@ export default function Calendar() {
 
   const isSelected = (date) => {
     if (!date) return false;
-    return date.toDateString() === selectedDate.toDateString();
+    return date.toDateString() === safeSelectedDate.toDateString();
   };
 
   const getRemindersForDate = (date) => {
     if (!date) return [];
-    const dateStr = date.toISOString().split("T")[0];
-    return reminders.filter((reminder) => reminder.date === dateStr);
+    return getRemindersByDate(date);
   };
 
   const handleDateClick = (date) => {
@@ -127,57 +125,83 @@ export default function Calendar() {
       setSelectedDate(date);
       setReminderForm({
         ...reminderForm,
-        date: date.toISOString().split("T")[0],
+        reminder_date: date.toISOString().split("T")[0],
       });
     }
   };
 
-  const handleAddReminder = () => {
-    if (reminderForm.title && reminderForm.time && reminderForm.date) {
-      const reminder = {
-        id: editingReminder ? editingReminder.id : Date.now(),
-        ...reminderForm,
-        completed: editingReminder ? editingReminder.completed : false,
-      };
+  const handleAddReminder = async () => {
+    if (
+      reminderForm.title &&
+      reminderForm.reminder_time &&
+      reminderForm.reminder_date
+    ) {
+      try {
+        if (editingReminder) {
+          await updateReminder(editingReminder.id, reminderForm);
+          setToastMessage("Reminder updated successfully!");
+          setEditingReminder(null);
+        } else {
+          await createReminder(reminderForm);
+          setToastMessage("Reminder created successfully!");
+        }
 
-      if (editingReminder) {
-        setReminders(
-          reminders.map((r) => (r.id === editingReminder.id ? reminder : r))
-        );
-        setEditingReminder(null);
-      } else {
-        setReminders([...reminders, reminder]);
+        setReminderForm({
+          title: "",
+          reminder_time: "",
+          reminder_date: safeSelectedDate.toISOString().split("T")[0],
+          type: "general",
+          description: "",
+        });
+        setShowAddReminder(false);
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      } catch (error) {
+        setToastMessage("Failed to save reminder. Please try again.");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
       }
-
-      setReminderForm({
-        title: "",
-        time: "",
-        date: selectedDate.toISOString().split("T")[0],
-        type: "medication",
-        description: "",
-      });
-      setShowAddReminder(false);
     }
   };
 
   const handleEditReminder = (reminder) => {
     setEditingReminder(reminder);
-    setReminderForm({ ...reminder });
+    setReminderForm({
+      title: reminder.title,
+      reminder_time: reminder.reminder_time,
+      reminder_date: reminder.reminder_date,
+      type: reminder.type,
+      description: reminder.description || "",
+    });
     setShowAddReminder(true);
   };
 
-  const handleDeleteReminder = (id) => {
-    setReminders(reminders.filter((reminder) => reminder.id !== id));
+  const handleDeleteReminder = async (id) => {
+    if (confirm("Are you sure you want to delete this reminder?")) {
+      try {
+        await deleteReminder(id);
+        setToastMessage("Reminder deleted successfully!");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      } catch (error) {
+        setToastMessage("Failed to delete reminder. Please try again.");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      }
+    }
   };
 
-  const handleToggleComplete = (id) => {
-    setReminders(
-      reminders.map((reminder) =>
-        reminder.id === id
-          ? { ...reminder, completed: !reminder.completed }
-          : reminder
-      )
-    );
+  const handleToggleComplete = async (id) => {
+    try {
+      const reminder = reminders.find((r) => r.id === id);
+      if (reminder) {
+        await toggleReminderComplete(id, !reminder.is_completed);
+      }
+    } catch (error) {
+      setToastMessage("Failed to update reminder. Please try again.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
   };
 
   const getTypeIcon = (type) => {
@@ -201,16 +225,52 @@ export default function Calendar() {
         return "badge-secondary";
       case "refill":
         return "badge-warning";
+      case "general":
+        return "badge-info";
       default:
         return "badge-neutral";
     }
   };
 
-  const days = getDaysInMonth(selectedDate);
-  const selectedDateReminders = getRemindersForDate(selectedDate);
+  const days = getDaysInMonth(safeSelectedDate);
+  const selectedDateReminders = getRemindersForDate(safeSelectedDate);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-base-100 p-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
+          <div className="loading loading-spinner loading-lg"></div>
+          <p className="ml-4 text-lg">Loading calendar...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-base-100 p-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
+          <div className="alert alert-error">
+            <span>Failed to load reminders: {error}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-base-100 p-6">
+      {/* Toast notification */}
+      {showToast && (
+        <div className="toast toast-top toast-end z-50">
+          <div className="alert alert-success">
+            <span>{toastMessage}</span>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -241,8 +301,8 @@ export default function Calendar() {
                     ←
                   </button>
                   <h2 className="text-2xl font-bold">
-                    {monthNames[selectedDate.getMonth()]}{" "}
-                    {selectedDate.getFullYear()}
+                    {monthNames[safeSelectedDate.getMonth()]}{" "}
+                    {safeSelectedDate.getFullYear()}
                   </h2>
                   <button
                     className="btn btn-ghost"
@@ -309,7 +369,8 @@ export default function Calendar() {
                                       : "bg-warning/20 text-warning"
                                   }`}
                                 >
-                                  {getTypeIcon(reminder.type)} {reminder.time}
+                                  {getTypeIcon(reminder.type)}{" "}
+                                  {formatTo12Hour(reminder.reminder_time)}
                                 </div>
                               ))}
                               {dateReminders.length > 3 && (
@@ -334,7 +395,7 @@ export default function Calendar() {
               <div className="card-body">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                   <CalendarDaysIcon className="w-6 h-6" />
-                  {selectedDate.toLocaleDateString("en-US", {
+                  {safeSelectedDate.toLocaleDateString("en-US", {
                     weekday: "long",
                     year: "numeric",
                     month: "long",
@@ -348,7 +409,7 @@ export default function Calendar() {
                       <div
                         key={reminder.id}
                         className={`p-4 rounded-lg border ${
-                          reminder.completed
+                          reminder.is_completed
                             ? "bg-success/10 border-success/20"
                             : "bg-base-200"
                         }`}
@@ -358,13 +419,13 @@ export default function Calendar() {
                             <input
                               type="checkbox"
                               className="checkbox checkbox-sm"
-                              checked={reminder.completed}
+                              checked={reminder.is_completed}
                               onChange={() => handleToggleComplete(reminder.id)}
                             />
                             <div>
                               <h4
                                 className={`font-medium ${
-                                  reminder.completed
+                                  reminder.is_completed
                                     ? "line-through text-base-content/50"
                                     : ""
                                 }`}
@@ -372,7 +433,7 @@ export default function Calendar() {
                                 {getTypeIcon(reminder.type)} {reminder.title}
                               </h4>
                               <p className="text-sm text-base-content/60">
-                                {reminder.time}
+                                {formatTo12Hour(reminder.reminder_time)}
                               </p>
                             </div>
                           </div>
@@ -432,9 +493,9 @@ export default function Calendar() {
 
         {/* Add/Edit Reminder Modal */}
         {showAddReminder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="card bg-base-100 w-full max-w-md mx-4">
-              <div className="card-body">
+          <div className="modal modal-open">
+            <div className="modal-box max-w-2xl">
+              <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold">
                     {editingReminder ? "Edit Reminder" : "Add New Reminder"}
@@ -446,9 +507,11 @@ export default function Calendar() {
                       setEditingReminder(null);
                       setReminderForm({
                         title: "",
-                        time: "",
-                        date: selectedDate.toISOString().split("T")[0],
-                        type: "medication",
+                        reminder_time: "",
+                        reminder_date: safeSelectedDate
+                          .toISOString()
+                          .split("T")[0],
+                        type: "general",
                         description: "",
                       });
                     }}
@@ -483,11 +546,11 @@ export default function Calendar() {
                     <input
                       type="date"
                       className="input input-bordered"
-                      value={reminderForm.date}
+                      value={reminderForm.reminder_date}
                       onChange={(e) =>
                         setReminderForm({
                           ...reminderForm,
-                          date: e.target.value,
+                          reminder_date: e.target.value,
                         })
                       }
                     />
@@ -499,11 +562,11 @@ export default function Calendar() {
                     <input
                       type="time"
                       className="input input-bordered"
-                      value={reminderForm.time}
+                      value={reminderForm.reminder_time}
                       onChange={(e) =>
                         setReminderForm({
                           ...reminderForm,
-                          time: e.target.value,
+                          reminder_time: e.target.value,
                         })
                       }
                     />
@@ -521,6 +584,7 @@ export default function Calendar() {
                       setReminderForm({ ...reminderForm, type: e.target.value })
                     }
                   >
+                    <option value="general">⏰ General</option>
                     <option value="medication">💊 Medication</option>
                     <option value="appointment">🏥 Appointment</option>
                     <option value="refill">📋 Refill</option>
@@ -544,17 +608,19 @@ export default function Calendar() {
                   />
                 </div>
 
-                <div className="flex gap-2">
+                <div className="modal-action">
                   <button
-                    className="btn btn-outline flex-1"
+                    className="btn btn-outline"
                     onClick={() => {
                       setShowAddReminder(false);
                       setEditingReminder(null);
                       setReminderForm({
                         title: "",
-                        time: "",
-                        date: selectedDate.toISOString().split("T")[0],
-                        type: "medication",
+                        reminder_time: "",
+                        reminder_date: safeSelectedDate
+                          .toISOString()
+                          .split("T")[0],
+                        type: "general",
                         description: "",
                       });
                     }}
@@ -562,7 +628,7 @@ export default function Calendar() {
                     Cancel
                   </button>
                   <button
-                    className="btn btn-primary flex-1"
+                    className="btn btn-primary"
                     onClick={handleAddReminder}
                   >
                     {editingReminder ? "Update" : "Add"} Reminder

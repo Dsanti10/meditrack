@@ -1,58 +1,67 @@
 import { Link } from "react-router";
-import {
-  CalendarDaysIcon,
-  ClockIcon,
-  BellIcon,
-} from "@heroicons/react/24/outline";
-import { useState, useMemo } from "react";
-import useQuery from "../api/useQuery";
-import { useReminders } from "../contexts/ReminderContext";
+import { CalendarDaysIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
 import MedicationIcon from "@mui/icons-material/Medication";
 
-export default function TodaySchedule({ disableCalendarLink = false }) {
-  const {
-    data: todayMedicationSchedule = [],
-    loading: medicationLoading,
-    error: medicationError,
-  } = useQuery("/medications/schedule/today", "todaySchedule");
+export default function TodayScheduleMockup({ disableCalendarLink = false }) {
+  // Hardcoded schedule data
+  const todaySchedule = [
+    {
+      medication_id: 1,
+      name: "Metformin",
+      dosage: "500mg",
+      color: "primary",
+      notes: "Take with meals to reduce stomach upset",
+      schedule_id: 1,
+      time_slot: "08:00:00",
+      status: "completed",
+    },
+    {
+      medication_id: 2,
+      name: "Lisinopril",
+      dosage: "10mg",
+      color: "secondary",
+      notes: "Monitor blood pressure regularly",
+      schedule_id: 3,
+      time_slot: "08:00:00",
+      status: "completed",
+    },
+    {
+      medication_id: 4,
+      name: "Vitamin D3",
+      dosage: "1000 IU",
+      color: "success",
+      notes: "Supplement - take with fatty meal",
+      schedule_id: 5,
+      time_slot: "08:00:00",
+      status: "pending",
+    },
+    {
+      medication_id: 1,
+      name: "Metformin",
+      dosage: "500mg",
+      color: "primary",
+      notes: "Take with meals to reduce stomach upset",
+      schedule_id: 2,
+      time_slot: "20:00:00",
+      status: "upcoming",
+    },
+    {
+      medication_id: 3,
+      name: "Atorvastatin",
+      dosage: "20mg",
+      color: "accent",
+      notes: "Take before bedtime",
+      schedule_id: 4,
+      time_slot: "21:00:00",
+      status: "upcoming",
+    },
+  ];
 
-  const { getTodaysReminders, toggleReminderComplete } = useReminders();
-  const todayReminders = getTodaysReminders();
-
+  const loading = false;
+  const error = null;
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-
-  // Combine medication schedules and reminders into a unified schedule
-  const todaySchedule = useMemo(() => {
-    const medicationItems = todayMedicationSchedule.map((item) => ({
-      ...item,
-      type: "medication",
-      time: item.time_slot,
-      id: `med-${item.medication_id}-${item.schedule_id}`,
-    }));
-
-    const reminderItems = todayReminders.map((reminder) => ({
-      ...reminder,
-      type: "reminder",
-      time: reminder.reminder_time,
-      name: reminder.title,
-      id: `reminder-${reminder.id}`,
-      status: reminder.is_completed
-        ? "completed"
-        : new Date(`${reminder.reminder_date}T${reminder.reminder_time}`) <
-          new Date()
-        ? "pending"
-        : "upcoming",
-    }));
-
-    // Combine and sort by time
-    const combined = [...medicationItems, ...reminderItems];
-    return combined.sort((a, b) => {
-      const timeA = a.time || "00:00";
-      const timeB = b.time || "00:00";
-      return timeA.localeCompare(timeB);
-    });
-  }, [todayMedicationSchedule, todayReminders]);
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -62,13 +71,6 @@ export default function TodaySchedule({ disableCalendarLink = false }) {
       overdue: "badge badge-error",
     };
     return badges[status] || "badge badge-neutral";
-  };
-
-  const getTypeIcon = (type, color = "primary") => {
-    if (type === "medication") {
-      return <MedicationIcon className={`w-5 h-5 text-${color}`} />;
-    }
-    return <BellIcon className={`w-5 h-5 text-${color}`} />;
   };
 
   const formatTime = (timeSlot) => {
@@ -87,26 +89,7 @@ export default function TodaySchedule({ disableCalendarLink = false }) {
     return timeSlot;
   };
 
-  const handleCompleteAction = async (item) => {
-    try {
-      if (item.type === "medication") {
-        // TODO: Implement medication completion API call
-        setToastMessage(`Marked ${item.name} as taken`);
-      } else if (item.type === "reminder") {
-        await toggleReminderComplete(item.id.replace("reminder-", ""), true);
-        setToastMessage(`Completed reminder: ${item.name}`);
-      }
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    } catch (error) {
-      console.error("Error completing action:", error);
-      setToastMessage("Failed to complete action. Please try again.");
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    }
-  };
-
-  if (medicationLoading) {
+  if (loading) {
     return (
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
@@ -119,7 +102,7 @@ export default function TodaySchedule({ disableCalendarLink = false }) {
     );
   }
 
-  if (medicationError) {
+  if (error) {
     return (
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
@@ -149,7 +132,7 @@ export default function TodaySchedule({ disableCalendarLink = false }) {
             Today's Schedule
           </h2>
           {!disableCalendarLink && (
-            <Link to="/calendar" className="btn btn-primary btn-sm">
+            <Link to="/calendar" className="btn btn-ghost btn-sm">
               View Calendar
             </Link>
           )}
@@ -159,7 +142,7 @@ export default function TodaySchedule({ disableCalendarLink = false }) {
           <div className="text-center py-8">
             <CalendarDaysIcon className="w-16 h-16 mx-auto text-base-300 mb-4" />
             <h3 className="text-lg font-semibold text-base-content/60 mb-2">
-              No scheduled items today
+              No scheduled medications today
             </h3>
             <p className="text-base-content/40">
               Your schedule is clear for today!
@@ -169,7 +152,7 @@ export default function TodaySchedule({ disableCalendarLink = false }) {
           <div className="space-y-4">
             {todaySchedule.map((item) => (
               <div
-                key={item.id}
+                key={`${item.medication_id}-${item.schedule_id}`}
                 className="flex items-center gap-4 p-4 border border-base-300 rounded-lg hover:bg-base-50 transition-colors"
               >
                 <div className="flex-shrink-0">
@@ -178,33 +161,30 @@ export default function TodaySchedule({ disableCalendarLink = false }) {
                       item.color || "primary"
                     }/20`}
                   >
-                    {getTypeIcon(item.type, item.color || "primary")}
+                    <MedicationIcon
+                      className={`w-5 h-5 text-${item.color || "primary"}`}
+                    />
                   </div>
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-base truncate">
-                      {item.type === "medication"
-                        ? `${item.name} ${item.dosage || ""}`
-                        : item.name}
+                      {item.name} {item.dosage}
                     </h3>
                     <span className={`${getStatusBadge(item.status)} badge-sm`}>
                       {item.status}
-                    </span>
-                    <span className="badge badge-outline badge-sm">
-                      {item.type}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2 text-sm text-base-content/70">
                     <ClockIcon className="w-4 h-4" />
-                    <span>{formatTime(item.time)}</span>
+                    <span>{formatTime(item.time_slot)}</span>
                   </div>
 
-                  {(item.notes || item.description) && (
+                  {item.notes && (
                     <p className="text-sm text-base-content/60 mt-1 line-clamp-1">
-                      {item.notes || item.description}
+                      {item.notes}
                     </p>
                   )}
                 </div>
@@ -213,9 +193,14 @@ export default function TodaySchedule({ disableCalendarLink = false }) {
                   {item.status === "pending" && (
                     <button
                       className="btn btn-success btn-sm"
-                      onClick={() => handleCompleteAction(item)}
+                      onClick={() => {
+                        // TODO: Implement mark as completed functionality
+                        setToastMessage(`Marked ${item.name} as taken`);
+                        setShowToast(true);
+                        setTimeout(() => setShowToast(false), 3000);
+                      }}
                     >
-                      {item.type === "medication" ? "Mark Taken" : "Complete"}
+                      Mark Taken
                     </button>
                   )}
                   {item.status === "completed" && (

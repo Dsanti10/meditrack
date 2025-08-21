@@ -62,20 +62,20 @@ export default function Login() {
 
             {/* Login Form */}
             <form className="space-y-3 sm:space-y-4" action={onLogin}>
-              {/* Username Field */}
+              {/* Email Field */}
               <div className="form-control">
-                <label className="label" htmlFor="username">
+                <label className="label" htmlFor="email">
                   <span className="label-text text-base-content text-sm sm:text-base">
-                    Username
+                    Email
                   </span>
                 </label>
                 <input
-                  id="username"
-                  name="username"
-                  type="text"
+                  id="email"
+                  name="email"
+                  type="email"
                   required
                   className="input input-bordered w-full bg-base-200 border-base-content/20 text-base-content placeholder:text-base-content/50 focus:border-primary focus:outline-none text-sm sm:text-base"
-                  placeholder="Enter your username"
+                  placeholder="Enter your email"
                 />
               </div>
 
@@ -148,6 +148,21 @@ export default function Login() {
                   )}
                 </button>
               </div>
+
+              {/* Demo Login Button
+              <div className="form-control">
+                <button
+                  type="button"
+                  onClick={() => {
+                    document.getElementById("email").value =
+                      "john.doe@example.com";
+                    document.getElementById("password").value = "password123";
+                  }}
+                  className="btn btn-outline btn-secondary w-full"
+                >
+                  Fill Demo Credentials
+                </button>
+              </div> */}
 
               {/* Register Link */}
               <div className="divider text-base-content/50">OR</div>

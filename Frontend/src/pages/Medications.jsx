@@ -11,100 +11,48 @@ import {
 } from "@heroicons/react/24/outline";
 import MedicationIcon from "@mui/icons-material/Medication";
 import { useState } from "react";
+import useQuery from "../api/useQuery";
+import useMutation from "../api/useMutation";
 
 export default function Medications() {
-  // Same medication data from MyMedications component
-  const [medications, setMedications] = useState([
-    {
-      id: 1,
-      name: "Metformin",
-      dosage: "500mg",
-      frequency: "Twice daily",
-      timeSlots: ["8:00 AM", "8:00 PM"],
-      currentStock: 5,
-      status: "active",
-      color: "primary",
-      notes: "Take with meals to reduce stomach upset",
-      prescribedBy: "Dr. Smith",
-      startDate: "2024-01-15",
-      refillsRemaining: 3,
-    },
-    {
-      id: 2,
-      name: "Lisinopril",
-      dosage: "10mg",
-      frequency: "Once daily",
-      timeSlots: ["8:00 AM"],
-      currentStock: 12,
-      status: "active",
-      color: "secondary",
-      notes: "Monitor blood pressure regularly",
-      prescribedBy: "Dr. Johnson",
-      startDate: "2023-11-20",
-      refillsRemaining: 5,
-    },
-    {
-      id: 3,
-      name: "Atorvastatin",
-      dosage: "20mg",
-      frequency: "Once daily",
-      timeSlots: ["9:00 PM"],
-      currentStock: 20,
-      status: "active",
-      color: "accent",
-      notes: "Take before bedtime",
-      prescribedBy: "Dr. Smith",
-      startDate: "2024-02-01",
-      refillsRemaining: 2,
-    },
-    {
-      id: 4,
-      name: "Vitamin D3",
-      dosage: "1000 IU",
-      frequency: "Once daily",
-      timeSlots: ["8:00 AM"],
-      currentStock: 8,
-      status: "active",
-      color: "success",
-      notes: "Supplement - take with fatty meal",
-      prescribedBy: "Dr. Wilson",
-      startDate: "2024-01-01",
-      refillsRemaining: 0,
-    },
-    {
-      id: 5,
-      name: "Aspirin",
-      dosage: "81mg",
-      frequency: "As needed",
-      timeSlots: [],
-      currentStock: 0,
-      status: "paused",
-      color: "warning",
-      notes: "Low-dose for heart health - currently paused",
-      prescribedBy: "Dr. Smith",
-      startDate: "2023-12-01",
-      refillsRemaining: 1,
-    },
+  const {
+    data: medications = [],
+    loading,
+    error,
+  } = useQuery("/medications", "medications");
+
+  const createMedicationMutation = useMutation("POST", "/medications", [
+    "medications",
+  ]);
+  const updateMedicationMutation = useMutation("PUT", "/medications", [
+    "medications",
+  ]);
+  const deleteMedicationMutation = useMutation("DELETE", "/medications", [
+    "medications",
   ]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingMedication, setEditingMedication] = useState(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   // Form state for adding/editing medications
   const [medicationForm, setMedicationForm] = useState({
     name: "",
     dosage: "",
     frequency: "Once daily",
-    timeSlots: [],
-    currentStock: 0,
+    time_slots: [],
+    current_stock: 0,
     status: "active",
     color: "primary",
     notes: "",
-    prescribedBy: "",
-    startDate: new Date().toISOString().split("T")[0],
-    refillsRemaining: 0,
+    prescribed_by: "",
+    start_date: new Date().toISOString().split("T")[0],
+    refills_remaining: 0,
+    prescription_number: "",
+    pharmacy: "",
   });
 
   const frequencyOptions = [
@@ -131,14 +79,16 @@ export default function Medications() {
       name: "",
       dosage: "",
       frequency: "Once daily",
-      timeSlots: [],
-      currentStock: 0,
+      time_slots: [],
+      current_stock: 0,
       status: "active",
       color: "primary",
       notes: "",
-      prescribedBy: "",
-      startDate: new Date().toISOString().split("T")[0],
-      refillsRemaining: 0,
+      prescribed_by: "",
+      start_date: new Date().toISOString().split("T")[0],
+      refills_remaining: 0,
+      prescription_number: "",
+      pharmacy: "",
     });
     setEditingMedication(null);
   };
@@ -154,43 +104,88 @@ export default function Medications() {
     setIsAddModalOpen(true);
   };
 
-  const handleDeleteMedication = (medicationId) => {
+  const handleDeleteMedication = async (medicationId) => {
     if (confirm("Are you sure you want to delete this medication?")) {
-      setMedications(medications.filter((med) => med.id !== medicationId));
+      try {
+        const success = await deleteMedicationMutation.mutate(
+          null,
+          `/medications/${medicationId}`
+        );
+        if (success) {
+          setToastMessage("Medication deleted successfully!");
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 3000);
+        } else {
+          setToastMessage("Failed to delete medication. Please try again.");
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 3000);
+        }
+      } catch (error) {
+        console.error("Error deleting medication:", error);
+        setToastMessage("An error occurred while deleting. Please try again.");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      }
     }
   };
 
-  const handleSaveMedication = (e) => {
+  const handleSaveMedication = async (e) => {
     e.preventDefault();
 
-    if (editingMedication) {
-      // Update existing medication
-      setMedications(
-        medications.map((med) =>
-          med.id === editingMedication.id
-            ? { ...medicationForm, id: editingMedication.id }
-            : med
-        )
-      );
-    } else {
-      // Add new medication
-      const newMedication = {
-        ...medicationForm,
-        id: Math.max(...medications.map((m) => m.id), 0) + 1,
-      };
-      setMedications([...medications, newMedication]);
+    try {
+      if (editingMedication) {
+        // Update existing medication - include ID in URL
+        const { time_slots, ...medicationDataWithoutTimeSlots } =
+          medicationForm;
+        const success = await updateMedicationMutation.mutate(
+          medicationDataWithoutTimeSlots,
+          `/medications/${editingMedication.id}`
+        );
+        if (success) {
+          setToastMessage("Medication updated successfully!");
+          setShowToast(true);
+          setIsAddModalOpen(false);
+          resetForm();
+          setTimeout(() => setShowToast(false), 3000);
+        } else {
+          setToastMessage("Failed to update medication. Please try again.");
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 3000);
+        }
+      } else {
+        // Add new medication
+        const { time_slots, ...medicationDataWithoutTimeSlots } =
+          medicationForm;
+        const success = await createMedicationMutation.mutate(
+          medicationDataWithoutTimeSlots
+        );
+        if (success) {
+          // TODO: Handle time_slots creation separately if needed
+          setToastMessage("Medication added successfully!");
+          setShowToast(true);
+          setIsAddModalOpen(false);
+          resetForm();
+          setTimeout(() => setShowToast(false), 3000);
+        } else {
+          setToastMessage("Failed to add medication. Please try again.");
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 3000);
+        }
+      }
+    } catch (error) {
+      console.error("Error saving medication:", error);
+      setToastMessage("An error occurred. Please try again.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     }
-
-    setIsAddModalOpen(false);
-    resetForm();
   };
 
   const addTimeSlot = () => {
     const time = document.getElementById("timeSlot").value;
-    if (time && !medicationForm.timeSlots.includes(time)) {
+    if (time && !medicationForm.time_slots.includes(time)) {
       setMedicationForm({
         ...medicationForm,
-        timeSlots: [...medicationForm.timeSlots, time],
+        time_slots: [...medicationForm.time_slots, time],
       });
       document.getElementById("timeSlot").value = "";
     }
@@ -199,7 +194,7 @@ export default function Medications() {
   const removeTimeSlot = (timeToRemove) => {
     setMedicationForm({
       ...medicationForm,
-      timeSlots: medicationForm.timeSlots.filter(
+      time_slots: medicationForm.time_slots.filter(
         (time) => time !== timeToRemove
       ),
     });
@@ -228,7 +223,8 @@ export default function Medications() {
   const filteredMedications = medications.filter((med) => {
     const matchesSearch =
       med.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      med.prescribedBy.toLowerCase().includes(searchTerm.toLowerCase());
+      (med.prescribed_by &&
+        med.prescribed_by.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = filterStatus === "all" || med.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -237,12 +233,37 @@ export default function Medications() {
     (med) => med.status === "active"
   ).length;
   const lowStockCount = medications.filter(
-    (med) => med.currentStock <= 5
+    (med) => med.current_stock <= 5
   ).length;
   const totalDoses = medications.reduce(
-    (total, med) => total + med.timeSlots.length,
+    (total, med) => total + (med.time_slots ? med.time_slots.length : 0),
     0
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-base-100 p-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
+          <div className="loading loading-spinner loading-lg"></div>
+          <p className="ml-4 text-lg">Loading medications...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-base-100 p-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
+          <div className="alert alert-error">
+            <ExclamationCircleIcon className="w-6 h-6" />
+            <span>Failed to load medications: {error}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-base-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -353,7 +374,7 @@ export default function Medications() {
             ) : (
               <div className="space-y-4">
                 {filteredMedications.map((medication) => {
-                  const stockInfo = getStockIndicator(medication.currentStock);
+                  const stockInfo = getStockIndicator(medication.current_stock);
                   return (
                     <div
                       key={medication.id}
@@ -376,9 +397,9 @@ export default function Medications() {
                               {medication.dosage} • {medication.frequency}
                             </p>
                             <p className="text-sm text-base-content/60">
-                              Prescribed by {medication.prescribedBy} • Started{" "}
+                              Prescribed by {medication.prescribed_by} • Started{" "}
                               {new Date(
-                                medication.startDate
+                                medication.start_date
                               ).toLocaleDateString()}
                             </p>
                           </div>
@@ -425,28 +446,32 @@ export default function Medications() {
                       </div>
 
                       {/* Time Slots */}
-                      {medication.timeSlots.length > 0 && (
-                        <div className="mb-4">
-                          <p className="text-sm font-medium mb-2">
-                            Scheduled Times:
-                          </p>
-                          <div className="flex gap-2 flex-wrap">
-                            {medication.timeSlots.map((time, index) => (
-                              <span key={index} className="badge badge-outline">
-                                <ClockIcon className="w-3 h-3 mr-1" />
-                                {time}
-                              </span>
-                            ))}
+                      {medication.time_slots &&
+                        medication.time_slots.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-sm font-medium mb-2">
+                              Scheduled Times:
+                            </p>
+                            <div className="flex gap-2 flex-wrap">
+                              {medication.time_slots.map((time, index) => (
+                                <span
+                                  key={index}
+                                  className="badge badge-outline"
+                                >
+                                  <ClockIcon className="w-3 h-3 mr-1" />
+                                  {time}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       {/* Stock and Refill Information */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div
                           className={`flex items-center gap-2 px-3 py-2 rounded-lg ${stockInfo.bg}`}
                         >
-                          {medication.currentStock === 0 ? (
+                          {medication.current_stock === 0 ? (
                             <ExclamationCircleIcon className="w-5 h-5 text-error" />
                           ) : (
                             <CheckCircleIcon className="w-5 h-5 text-success" />
@@ -454,12 +479,12 @@ export default function Medications() {
                           <span
                             className={`text-sm font-medium ${stockInfo.class}`}
                           >
-                            {medication.currentStock} pills • {stockInfo.text}
+                            {medication.current_stock} pills • {stockInfo.text}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-info/10">
                           <span className="text-sm font-medium text-info">
-                            {medication.refillsRemaining} refills remaining
+                            {medication.refills_remaining} refills remaining
                           </span>
                         </div>
                       </div>
@@ -595,7 +620,7 @@ export default function Medications() {
                     </button>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    {medicationForm.timeSlots.map((time, index) => (
+                    {medicationForm.time_slots.map((time, index) => (
                       <span key={index} className="badge badge-primary gap-2">
                         {time}
                         <button
@@ -619,11 +644,11 @@ export default function Medications() {
                       type="number"
                       className="input input-bordered"
                       min="0"
-                      value={medicationForm.currentStock}
+                      value={medicationForm.current_stock}
                       onChange={(e) =>
                         setMedicationForm({
                           ...medicationForm,
-                          currentStock: parseInt(e.target.value) || 0,
+                          current_stock: parseInt(e.target.value) || 0,
                         })
                       }
                     />
@@ -637,11 +662,11 @@ export default function Medications() {
                       type="number"
                       className="input input-bordered"
                       min="0"
-                      value={medicationForm.refillsRemaining}
+                      value={medicationForm.refills_remaining}
                       onChange={(e) =>
                         setMedicationForm({
                           ...medicationForm,
-                          refillsRemaining: parseInt(e.target.value) || 0,
+                          refills_remaining: parseInt(e.target.value) || 0,
                         })
                       }
                     />
@@ -677,11 +702,11 @@ export default function Medications() {
                       type="text"
                       className="input input-bordered"
                       placeholder="Dr. Smith"
-                      value={medicationForm.prescribedBy}
+                      value={medicationForm.prescribed_by}
                       onChange={(e) =>
                         setMedicationForm({
                           ...medicationForm,
-                          prescribedBy: e.target.value,
+                          prescribed_by: e.target.value,
                         })
                       }
                     />
@@ -694,11 +719,11 @@ export default function Medications() {
                     <input
                       type="date"
                       className="input input-bordered"
-                      value={medicationForm.startDate}
+                      value={medicationForm.start_date}
                       onChange={(e) =>
                         setMedicationForm({
                           ...medicationForm,
-                          startDate: e.target.value,
+                          start_date: e.target.value,
                         })
                       }
                     />
@@ -735,6 +760,16 @@ export default function Medications() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Toast Notification */}
+        {showToast && (
+          <div className="toast toast-top toast-end z-50">
+            <div className="alert alert-success">
+              <CheckCircleIcon className="w-6 h-6" />
+              <span>{toastMessage}</span>
             </div>
           </div>
         )}

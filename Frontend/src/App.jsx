@@ -11,6 +11,7 @@ import Medications from "./pages/Medications";
 import LoginRegisterLayout from "./layout/LoginRegisterLayout";
 import Refills from "./pages/Refills";
 import Profile from "./pages/Profile";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
   return (
@@ -27,7 +28,13 @@ export default function App() {
       </Route>
 
       {/* Dashboard routes with sidebar layout */}
-      <Route element={<DashboardLayout />}>
+      <Route
+        element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/calendar" element={<Calendar page="calendar" />} />
         {/* Add more dashboard routes here */}

@@ -16,31 +16,94 @@ import {
   GlobeAltIcon,
 } from "@heroicons/react/24/outline";
 import { useState, useEffect } from "react";
+import { useAuth } from "../auth/AuthContext";
+import useQuery from "../api/useQuery";
 
 export default function Profile() {
-  // User profile state
+  const { user: authUser, loading: authLoading } = useAuth();
+
+  // Get user's medications count
+  const { data: medications = [], loading: medicationsLoading } = useQuery(
+    "/medications",
+    "medications"
+  );
+
+  // Get user's settings and notifications
+  const { data: userSettings, loading: settingsLoading } = useQuery(
+    "/users/settings",
+    "userSettings"
+  );
+
+  const { data: userNotifications, loading: notificationsLoading } = useQuery(
+    "/users/notifications",
+    "userNotifications"
+  );
+  // User profile state - initialize from auth user data
   const [userProfile, setUserProfile] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    phone: "(555) 123-4567",
-    address: "123 Main St, City, State 12345",
-    dateOfBirth: "1985-03-15",
-    emergencyContact: "Jane Doe - (555) 987-6543",
-    bloodType: "A+",
-    allergies: ["Penicillin", "Shellfish"],
-    medicalConditions: ["Hypertension", "Type 2 Diabetes"],
-    primaryDoctor: "Dr. Sarah Smith",
-    insurance: "Blue Cross Blue Shield",
-    insuranceNumber: "BC123456789",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    dateOfBirth: "",
+    emergencyContact: "",
+    bloodType: "",
+    allergies: [],
+    medicalConditions: [],
+    primaryDoctor: "",
+    insurance: "",
+    insuranceNumber: "",
     avatar: null,
   });
 
+  // Update userProfile when authUser data is loaded
+  useEffect(() => {
+    if (authUser) {
+      setUserProfile({
+        firstName: authUser.first_name || "",
+        lastName: authUser.last_name || "",
+        email: authUser.email || "",
+        phone: authUser.phone || "",
+        address: authUser.address || "",
+        dateOfBirth: authUser.date_of_birth
+          ? authUser.date_of_birth.split("T")[0]
+          : "",
+        emergencyContact: authUser.emergency_contact || "",
+        bloodType: authUser.blood_type || "",
+        allergies: authUser.allergies || [],
+        medicalConditions: authUser.medical_conditions || [],
+        primaryDoctor: authUser.primary_doctor || "",
+        insurance: authUser.insurance || "",
+        insuranceNumber: authUser.insurance_number || "",
+        avatar: authUser.avatar_url || null,
+      });
+      setTempProfile({
+        firstName: authUser.first_name || "",
+        lastName: authUser.last_name || "",
+        email: authUser.email || "",
+        phone: authUser.phone || "",
+        address: authUser.address || "",
+        dateOfBirth: authUser.date_of_birth
+          ? authUser.date_of_birth.split("T")[0]
+          : "",
+        emergencyContact: authUser.emergency_contact || "",
+        bloodType: authUser.blood_type || "",
+        allergies: authUser.allergies || [],
+        medicalConditions: authUser.medical_conditions || [],
+        primaryDoctor: authUser.primary_doctor || "",
+        insurance: authUser.insurance || "",
+        insuranceNumber: authUser.insurance_number || "",
+        avatar: authUser.avatar_url || null,
+      });
+    }
+  }, [authUser]);
+
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingMedical, setIsEditingMedical] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [tempProfile, setTempProfile] = useState({ ...userProfile });
 
-  // Notification preferences
+  // Notification preferences - initialize from API data
   const [notifications, setNotifications] = useState({
     medicationReminders: true,
     refillAlerts: true,
@@ -49,8 +112,20 @@ export default function Profile() {
     smsNotifications: false,
   });
 
-  // Settings state
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  // Update notifications when data is loaded
+  useEffect(() => {
+    if (userNotifications) {
+      setNotifications({
+        medicationReminders: userNotifications.medication_reminders ?? true,
+        refillAlerts: userNotifications.refill_alerts ?? true,
+        appointmentReminders: userNotifications.appointment_reminders ?? true,
+        emailNotifications: userNotifications.email_notifications ?? true,
+        smsNotifications: userNotifications.sms_notifications ?? false,
+      });
+    }
+  }, [userNotifications]);
+
+  // Settings state - initialize from API data
   const [settings, setSettings] = useState({
     theme: localStorage.getItem("theme") || "system",
     language: "en",
@@ -58,6 +133,21 @@ export default function Profile() {
     dateFormat: "MM/DD/YYYY",
     timeFormat: "12",
   });
+
+  // Update settings when data is loaded
+  useEffect(() => {
+    if (userSettings) {
+      setSettings({
+        theme: userSettings.theme || localStorage.getItem("theme") || "system",
+        language: userSettings.language || "en",
+        timezone:
+          userSettings.timezone ||
+          Intl.DateTimeFormat().resolvedOptions().timeZone,
+        dateFormat: userSettings.date_format || "MM/DD/YYYY",
+        timeFormat: userSettings.time_format || "12",
+      });
+    }
+  }, [userSettings]);
 
   // Theme handling
   useEffect(() => {
@@ -132,6 +222,20 @@ export default function Profile() {
     }
   };
 
+  // Show loading state while user data is being fetched
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-base-100 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="loading loading-spinner loading-lg"></div>
+            <p className="ml-4 text-lg">Loading profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-base-100 p-6">
       <div className="max-w-6xl mx-auto">
@@ -155,9 +259,13 @@ export default function Profile() {
                   <div className="avatar">
                     <div className="w-32 h-32 rounded-full border-4 border-primary/20">
                       {userProfile.avatar ? (
-                        <img src={userProfile.avatar} alt="Profile" />
+                        <img
+                          src={userProfile.avatar}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
-                        <div className="bg-primary/10 flex items-center justify-center">
+                        <div className="w-full h-full bg-primary/10 flex items-center justify-center rounded-full">
                           <UserCircleIcon className="w-20 h-20 text-primary/50" />
                         </div>
                       )}
@@ -182,27 +290,44 @@ export default function Profile() {
                 {/* Quick Stats */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="stat bg-primary/10 rounded-lg p-3">
-                    <div className="stat-value text-lg text-primary">5</div>
+                    <div className="stat-value text-lg text-primary">
+                      {medicationsLoading ? (
+                        <div className="skeleton h-6 w-6"></div>
+                      ) : (
+                        medications.filter((med) => med.status === "active")
+                          .length || 0
+                      )}
+                    </div>
                     <div className="stat-title text-xs">Active Meds</div>
                   </div>
                   <div className="stat bg-secondary/10 rounded-lg p-3">
-                    <div className="stat-value text-lg text-secondary">12</div>
+                    <div className="stat-value text-lg text-secondary">
+                      {medicationsLoading ? (
+                        <div className="skeleton h-6 w-6"></div>
+                      ) : (
+                        medications
+                          .filter((med) => med.status === "active")
+                          .reduce((total, med) => {
+                            // Count time slots for each medication
+                            return (
+                              total +
+                              (med.time_slots ? med.time_slots.length : 0)
+                            );
+                          }, 0) || 0
+                      )}
+                    </div>
                     <div className="stat-title text-xs">Daily Doses</div>
                   </div>
                 </div>
 
                 {/* Quick Actions */}
                 <div className="space-y-2">
-                  <button className="btn btn-primary btn-sm w-full">
-                    <PencilIcon className="w-4 h-4" />
-                    Edit Profile
-                  </button>
                   <button
                     className="btn btn-outline btn-sm w-full"
                     onClick={() => setIsSettingsModalOpen(true)}
                   >
                     <CogIcon className="w-4 h-4" />
-                    Settings
+                    App Settings
                   </button>
                 </div>
               </div>

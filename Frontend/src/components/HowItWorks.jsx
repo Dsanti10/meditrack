@@ -1,5 +1,6 @@
 import React from "react";
 import { UserPlus, Settings, Bell } from "lucide-react";
+import { Link } from "react-router";
 
 export function HowItWorks() {
   const steps = [
@@ -56,9 +57,11 @@ export function HowItWorks() {
           ))}
         </div>
         <div className="mt-16 text-center">
-          <button className="btn px-6 py-7 bg-primary text-primary-content rounded-md hover:bg-primary-focus transition-colors text-lg font-medium shadow-lg shadow-primary/30 hover:shadow-primary/50">
-            Get Started Now
-          </button>
+          <Link to="/register">
+            <button className="btn px-6 py-7 bg-primary text-primary-content rounded-md hover:bg-primary-focus transition-colors text-lg font-medium shadow-lg shadow-primary/30 hover:shadow-primary/50">
+              Get Started Now
+            </button>
+          </Link>
         </div>
       </div>
     </section>

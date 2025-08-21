@@ -1,5 +1,3 @@
-import { ClockIcon, CheckIcon } from "lucide-react";
-import { Link } from "react-router-dom";
 import DashboardMockup from "./DashboardMockup";
 
 export default function Hero() {

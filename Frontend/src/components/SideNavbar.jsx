@@ -10,8 +10,10 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MedicationIcon from "@mui/icons-material/Medication";
 import ThemeToggle from "./ThemeToggle";
 import ThemeAwareIcon from "./ThemeAwareIcon";
+import { useAuth } from "../auth/AuthContext";
 
 export default function SideNavbar() {
+  const { user, logout } = useAuth();
   const location = useLocation();
   const [activeItem, setActiveItem] = useState("dashboard");
 
@@ -35,12 +37,40 @@ export default function SideNavbar() {
       id: "logout",
       label: "Logout",
       icon: LogoutIcon,
-      path: "/login",
+      action: "logout",
     },
   ];
 
   // Check if current path matches menu item
   const isActivePath = (path) => location.pathname === path;
+
+  // Get user's display name
+  const getUserDisplayName = () => {
+    if (!user) return "User";
+
+    if (user.first_name && user.last_name) {
+      return `${user.first_name} ${user.last_name}`;
+    } else if (user.first_name) {
+      return user.first_name;
+    } else if (user.email) {
+      return user.email.split("@")[0];
+    }
+    return "User";
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user) return "U";
+
+    if (user.first_name && user.last_name) {
+      return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
+    } else if (user.first_name) {
+      return user.first_name[0].toUpperCase();
+    } else if (user.email) {
+      return user.email[0].toUpperCase();
+    }
+    return "U";
+  };
 
   return (
     <div className="drawer-side z-40">
@@ -68,21 +98,17 @@ export default function SideNavbar() {
         {/* User Profile */}
         <div className="p-3 sm:p-4 border-b border-base-300 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="avatar">
-              <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-full bg-accent flex-shrink-0">
-                <img
-                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                  alt="User"
-                  className="rounded-full"
-                />
+            <div className="text-center items-center">
+              <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-full bg-primary text-primary-content flex text-center items-center justify-center font-semibold text-lg flex-shrink-0">
+                {getUserInitials()}
               </div>
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-sm sm:text-base truncate">
-                John Doe
+                {getUserDisplayName()}
               </h3>
               <p className="text-xs sm:text-sm text-base-content/70 truncate">
-                Patient ID: #12345
+                {user?.email || "Loading..."}
               </p>
             </div>
           </div>
@@ -94,6 +120,26 @@ export default function SideNavbar() {
             {menuItems.map((item) => {
               const IconComponent = item.icon;
               const isActive = isActivePath(item.path);
+
+              // Handle logout action
+              if (item.action === "logout") {
+                return (
+                  <li key={item.id}>
+                    <button
+                      onClick={() => {
+                        logout();
+                        window.location.href = "/login";
+                      }}
+                      className="flex items-center gap-3 p-2 sm:p-3 rounded-lg transition-colors text-sm sm:text-base hover:bg-base-300 w-full text-left"
+                    >
+                      <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                      <span className="font-medium truncate">{item.label}</span>
+                    </button>
+                  </li>
+                );
+              }
+
+              // Regular menu items with navigation
               return (
                 <li key={item.id}>
                   <Link

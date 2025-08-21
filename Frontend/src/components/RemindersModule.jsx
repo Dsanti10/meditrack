@@ -9,6 +9,7 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import SlimCalendar from "./SlimCalendar";
+import { formatTo12Hour } from "../utils/timeFormat";
 
 export default function RemindersModule() {
   const [showAddReminder, setShowAddReminder] = useState(false);
@@ -179,7 +180,7 @@ export default function RemindersModule() {
                         {reminder.title}
                       </p>
                       <p className="text-sm text-base-content/60">
-                        {reminder.time}
+                        {formatTo12Hour(reminder.time)}
                       </p>
                     </div>
                   </div>
@@ -228,7 +229,7 @@ export default function RemindersModule() {
                     <div>
                       <p className="font-medium text-sm">{reminder.title}</p>
                       <p className="text-xs text-base-content/60">
-                        {reminder.date} at {reminder.time}
+                        {reminder.date} at {formatTo12Hour(reminder.time)}
                       </p>
                     </div>
                   </div>

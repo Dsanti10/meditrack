@@ -11,6 +11,7 @@ export default function Register() {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({});
   const [passwordMatch, setPasswordMatch] = useState(true);
@@ -50,11 +51,19 @@ export default function Register() {
     try {
       const { confirmPassword, ...payload } = formData;
       await register(payload);
-      navigate("/dashboard");
+
+      // Show success message
+      setIsSuccess(true);
+      setIsLoading(false);
+
+      // Wait 2 seconds then navigate to dashboard
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 2000);
     } catch (e) {
       setError(e.message);
-    } finally {
       setIsLoading(false);
+      setIsSuccess(false);
     }
   };
 
@@ -111,13 +120,36 @@ export default function Register() {
                   <span className="text-error-content">{error}</span>
                 </div>
               )}
+
+              {isSuccess && (
+                <div className="alert alert-success shadow-lg">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="stroke-current shrink-0 h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <div>
+                    <h3 className="font-bold">Registration Successful!</h3>
+                    <div className="text-xs">Loading your dashboard...</div>
+                  </div>
+                  <span className="loading loading-spinner loading-sm"></span>
+                </div>
+              )}
               <div className="form-control mt-6 flex flex-row gap-2">
                 {step > 0 && (
                   <button
                     type="button"
                     className="btn btn-outline flex-1"
                     onClick={handleBack}
-                    disabled={isLoading}
+                    disabled={isLoading || isSuccess}
                   >
                     Back
                   </button>
@@ -135,12 +167,17 @@ export default function Register() {
                   <button
                     type="submit"
                     className="btn btn-secondary flex-1"
-                    disabled={isLoading}
+                    disabled={isLoading || isSuccess}
                   >
                     {isLoading ? (
                       <>
                         <span className="loading loading-spinner loading-sm"></span>
                         Creating account...
+                      </>
+                    ) : isSuccess ? (
+                      <>
+                        <span className="loading loading-spinner loading-sm"></span>
+                        Account created!
                       </>
                     ) : (
                       <>

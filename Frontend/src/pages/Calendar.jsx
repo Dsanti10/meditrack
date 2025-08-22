@@ -37,6 +37,9 @@ export default function Calendar() {
     reminder_date: new Date().toISOString().split("T")[0],
     type: "general",
     description: "",
+    is_recurring: false,
+    recurrence_pattern: "daily",
+    end_date: "",
   });
 
   // Update form date when selected date changes
@@ -142,8 +145,13 @@ export default function Calendar() {
           setToastMessage("Reminder updated successfully!");
           setEditingReminder(null);
         } else {
-          await createReminder(reminderForm);
-          setToastMessage("Reminder created successfully!");
+          const result = await createReminder(reminderForm);
+          const successMessage = reminderForm.is_recurring
+            ? `Recurring reminder(s) created successfully! (${
+                Array.isArray(result) ? result.length : "Multiple"
+              } reminders)`
+            : "Reminder created successfully!";
+          setToastMessage(successMessage);
         }
 
         setReminderForm({
@@ -152,6 +160,9 @@ export default function Calendar() {
           reminder_date: safeSelectedDate.toISOString().split("T")[0],
           type: "general",
           description: "",
+          is_recurring: false,
+          recurrence_pattern: "daily",
+          end_date: "",
         });
         setShowAddReminder(false);
         setShowToast(true);
@@ -172,6 +183,9 @@ export default function Calendar() {
       reminder_date: reminder.reminder_date,
       type: reminder.type,
       description: reminder.description || "",
+      is_recurring: reminder.is_recurring || false,
+      recurrence_pattern: reminder.recurrence_pattern || "daily",
+      end_date: reminder.end_date || "",
     });
     setShowAddReminder(true);
   };
@@ -591,7 +605,7 @@ export default function Calendar() {
                   </select>
                 </div>
 
-                <div className="form-control mb-6">
+                <div className="form-control mb-4">
                   <label className="label">
                     <span className="label-text">Description (Optional)</span>
                   </label>
@@ -608,6 +622,68 @@ export default function Calendar() {
                   />
                 </div>
 
+                <div className="form-control mb-4">
+                  <label className="label cursor-pointer">
+                    <span className="label-text">Recurring Reminder</span>
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-primary"
+                      checked={reminderForm.is_recurring}
+                      onChange={(e) =>
+                        setReminderForm({
+                          ...reminderForm,
+                          is_recurring: e.target.checked,
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+
+                {reminderForm.is_recurring && (
+                  <>
+                    <div className="form-control mb-4">
+                      <label className="label">
+                        <span className="label-text">Recurrence Pattern</span>
+                      </label>
+                      <select
+                        className="select select-bordered"
+                        value={reminderForm.recurrence_pattern}
+                        onChange={(e) =>
+                          setReminderForm({
+                            ...reminderForm,
+                            recurrence_pattern: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="twice daily">Twice Daily</option>
+                        <option value="every 2 days">Every 2 Days</option>
+                        <option value="every 3 days">Every 3 Days</option>
+                      </select>
+                    </div>
+
+                    <div className="form-control mb-4">
+                      <label className="label">
+                        <span className="label-text">End Date (Optional)</span>
+                      </label>
+                      <input
+                        type="date"
+                        className="input input-bordered"
+                        value={reminderForm.end_date}
+                        onChange={(e) =>
+                          setReminderForm({
+                            ...reminderForm,
+                            end_date: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div className="modal-action">
                   <button
                     className="btn btn-outline"
@@ -622,6 +698,9 @@ export default function Calendar() {
                           .split("T")[0],
                         type: "general",
                         description: "",
+                        is_recurring: false,
+                        recurrence_pattern: "daily",
+                        end_date: "",
                       });
                     }}
                   >

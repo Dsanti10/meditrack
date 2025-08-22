@@ -51,14 +51,21 @@ export function ReminderProvider({ children }) {
     }
 
     try {
-      const newReminder = await request("/reminders", {
+      const result = await request("/reminders", {
         method: "POST",
         body: JSON.stringify(reminderData),
       });
-      setReminders((prev) => [...prev, newReminder]);
+
+      // Handle both single reminders and arrays of reminders (for recurring)
+      if (Array.isArray(result)) {
+        setReminders((prev) => [...prev, ...result]);
+      } else {
+        setReminders((prev) => [...prev, result]);
+      }
+
       // Invalidate related queries to refresh components
       invalidateTags(["reminders", "todaySchedule"]);
-      return newReminder;
+      return result;
     } catch (err) {
       setError(err.message);
       throw err;

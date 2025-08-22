@@ -1,5 +1,23 @@
 DROP DATABASE IF EXISTS meditrack;
-CREATE DATABASE meditrack;
+CCREATE TABLE medications (
+  id serial PRIMARY KEY,
+  user_id integer REFERENCES users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  dosage text NOT NULL,
+  frequency text NOT NULL,
+  current_stock integer DEFAULT 0,
+  status text DEFAULT 'active' CHECK (status IN ('active', 'paused', 'discontinued')),
+  color text DEFAULT 'primary',
+  notes text,
+  prescribed_by text,
+  start_date date,
+  stop_date date,
+  refills_remaining integer DEFAULT 0,
+  prescription_number text,
+  pharmacy text,
+  created_at timestamp DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp DEFAULT CURRENT_TIMESTAMP
+);itrack;
 
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS user_allergies;
@@ -89,6 +107,7 @@ CREATE TABLE reminders (
   is_completed boolean DEFAULT false,
   is_recurring boolean DEFAULT false,
   recurrence_pattern text,
+  end_date date,
   created_at timestamp DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp DEFAULT CURRENT_TIMESTAMP
 );

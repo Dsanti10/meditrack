@@ -8,6 +8,7 @@ import {
   deleteReminder,
   markReminderComplete,
   getUpcomingReminders,
+  createMedicationReminder,
 } from "#db/queries/reminders";
 
 const router = Router();
@@ -36,6 +37,25 @@ router.post(
     };
     const reminder = await createReminder(reminderData);
     res.status(201).json(reminder);
+  }
+);
+
+// Create a medication reminder
+router.post(
+  "/medication/:medicationId",
+  requireUser,
+  requireBody(["reminder_date", "reminder_time"]),
+  async (req, res) => {
+    try {
+      const reminder = await createMedicationReminder(
+        req.params.medicationId,
+        req.user.id,
+        req.body
+      );
+      res.status(201).json(reminder);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
   }
 );
 

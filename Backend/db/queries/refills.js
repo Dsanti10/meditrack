@@ -70,26 +70,62 @@ export async function createRefillReminder(refillData) {
 // Update refill status
 export async function updateRefillStatus(refillId, userId, status) {
   const sql = `
-    UPDATE refills 
+    UPDATE refills
     SET status = $1, updated_at = CURRENT_TIMESTAMP
     WHERE id = $2 AND user_id = $3
     RETURNING *
   `;
   const { rows } = await db.query(sql, [status, refillId, userId]);
 
-  // If status is 'picked_up', increase medication stock
+  // If status is 'picked_up', properly update medication stock
   if (rows.length > 0 && status === "picked_up") {
     const refill = rows[0];
-    // Add 30 days worth of medication (estimate)
-    await db.query(
-      `
-      UPDATE medications 
-      SET current_stock = current_stock + 30,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND user_id = $2
-    `,
-      [refill.medication_id, userId]
-    );
+
+    // Get medication details to calculate proper refill amount
+    const medicationQuery = `
+      SELECT m.*, array_agg(ms.time_slot ORDER BY ms.time_slot) as time_slots
+      FROM medications m
+      LEFT JOIN medication_schedules ms ON m.id = ms.medication_id AND ms.is_active = true
+      WHERE m.id = $1 AND m.user_id = $2
+      GROUP BY m.id
+    `;
+    const {
+      rows: [medication],
+    } = await db.query(medicationQuery, [refill.medication_id, userId]);
+
+    if (medication) {
+      // Calculate daily doses based on time slots or frequency
+      let dailyDoses = 0;
+      if (medication.time_slots && medication.time_slots[0] !== null) {
+        dailyDoses = medication.time_slots.filter(
+          (slot) => slot !== null
+        ).length;
+      } else {
+        // Fallback to frequency-based calculation
+        const frequency = medication.frequency.toLowerCase();
+        if (frequency.includes("once")) dailyDoses = 1;
+        else if (frequency.includes("twice")) dailyDoses = 2;
+        else if (frequency.includes("three") || frequency.includes("thrice"))
+          dailyDoses = 3;
+        else if (frequency.includes("four")) dailyDoses = 4;
+        else dailyDoses = 1; // Default
+      }
+
+      // Standard 30-day supply (can be made configurable later)
+      const refillAmount = dailyDoses * 30;
+
+      // Update medication stock and reset status to active if needed
+      await db.query(
+        `
+        UPDATE medications
+        SET current_stock = current_stock + $1,
+            status = 'active',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2 AND user_id = $3
+        `,
+        [refillAmount, refill.medication_id, userId]
+      );
+    }
   }
 
   return rows.length > 0 ? rows[0] : null;

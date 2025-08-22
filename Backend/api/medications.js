@@ -10,6 +10,7 @@ import {
   getMedicationSchedules,
   createMedicationSchedule,
   deleteMedicationSchedule,
+  deleteMedicationSchedules,
   getTodayMedicationSchedule,
 } from "#db/queries/medications";
 
@@ -47,26 +48,76 @@ router.post(
   requireUser,
   requireBody(["name", "dosage", "frequency"]),
   async (req, res) => {
-    const medicationData = {
-      ...req.body,
-      user_id: req.user.id,
-    };
-    const medication = await createMedication(medicationData);
-    res.status(201).json(medication);
+    try {
+      const { time_slots, ...medicationData } = req.body;
+
+      const medicationWithUserId = {
+        ...medicationData,
+        user_id: req.user.id,
+      };
+
+      const medication = await createMedication(medicationWithUserId);
+
+      // Handle time slots if provided
+      if (time_slots && time_slots.length > 0) {
+        // Create schedules for the medication
+        for (const timeSlot of time_slots) {
+          await createMedicationSchedule(medication.id, req.user.id, timeSlot);
+        }
+      }
+
+      // Return the medication with time slots
+      const medicationWithSchedules = await getMedicationById(
+        medication.id,
+        req.user.id
+      );
+
+      res.status(201).json(medicationWithSchedules);
+    } catch (error) {
+      console.error("Error creating medication:", error);
+      res.status(500).json({ error: "Failed to create medication" });
+    }
   }
 );
 
 // Update a medication
 router.put("/:id", requireUser, async (req, res) => {
-  const medication = await updateMedication(
-    req.params.id,
-    req.user.id,
-    req.body
-  );
-  if (!medication) {
-    return res.status(404).json({ error: "Medication not found" });
+  try {
+    const { time_slots, ...medicationData } = req.body;
+
+    // Update the medication record (excluding time_slots)
+    const medication = await updateMedication(
+      req.params.id,
+      req.user.id,
+      medicationData
+    );
+
+    if (!medication) {
+      return res.status(404).json({ error: "Medication not found" });
+    }
+
+    // Handle time slots if provided
+    if (time_slots) {
+      // Delete existing schedules for this medication
+      await deleteMedicationSchedules(req.params.id, req.user.id);
+
+      // Create new schedules
+      for (const timeSlot of time_slots) {
+        await createMedicationSchedule(req.params.id, req.user.id, timeSlot);
+      }
+    }
+
+    // Return the updated medication with time slots
+    const updatedMedicationWithSchedules = await getMedicationById(
+      req.params.id,
+      req.user.id
+    );
+
+    res.json(updatedMedicationWithSchedules);
+  } catch (error) {
+    console.error("Error updating medication:", error);
+    res.status(500).json({ error: "Failed to update medication" });
   }
-  res.json(medication);
 });
 
 // Delete a medication

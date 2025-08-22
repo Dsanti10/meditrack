@@ -8,13 +8,22 @@ import {
   TrashIcon,
   EyeIcon,
   MagnifyingGlassIcon,
+  BellIcon,
 } from "@heroicons/react/24/outline";
 import MedicationIcon from "@mui/icons-material/Medication";
 import { useState } from "react";
 import useQuery from "../api/useQuery";
 import useMutation from "../api/useMutation";
+import { useApi } from "../api/ApiContext";
+import { useReminders } from "../contexts/ReminderContext";
 
 export default function Medications() {
+  const { request, invalidateTags } = useApi();
+  const {
+    createReminder: createReminderContext,
+    fetchReminders,
+    reminders,
+  } = useReminders();
   const {
     data: medications = [],
     loading,
@@ -38,6 +47,22 @@ export default function Medications() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
+  // Reminder modal state
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [selectedMedication, setSelectedMedication] = useState(null);
+  const [reminderForm, setReminderForm] = useState({
+    title: "",
+    reminder_date: new Date().toISOString().split("T")[0],
+    reminder_time: "",
+    is_recurring: false,
+    recurrence_pattern: "daily",
+    end_date: "",
+    description: "",
+  });
+
+  // Auto-reminder creation option
+  const [createAutoReminders, setCreateAutoReminders] = useState(true);
+
   // Form state for adding/editing medications
   const [medicationForm, setMedicationForm] = useState({
     name: "",
@@ -50,6 +75,7 @@ export default function Medications() {
     notes: "",
     prescribed_by: "",
     start_date: new Date().toISOString().split("T")[0],
+    stop_date: "", // Add stop date for recurring reminders
     refills_remaining: 0,
     prescription_number: "",
     pharmacy: "",
@@ -74,6 +100,29 @@ export default function Medications() {
     { value: "info", label: "Sky" },
   ];
 
+  // Helper function to check if a medication has linked reminders
+  const medicationHasReminders = (medicationId) => {
+    return (
+      reminders &&
+      reminders.some(
+        (reminder) =>
+          reminder.medication_id === medicationId &&
+          reminder.type === "medication"
+      )
+    );
+  };
+
+  // Helper function to get reminder count for a medication
+  const getMedicationReminderCount = (medicationId) => {
+    return reminders
+      ? reminders.filter(
+          (reminder) =>
+            reminder.medication_id === medicationId &&
+            reminder.type === "medication"
+        ).length
+      : 0;
+  };
+
   const resetForm = () => {
     setMedicationForm({
       name: "",
@@ -86,11 +135,13 @@ export default function Medications() {
       notes: "",
       prescribed_by: "",
       start_date: new Date().toISOString().split("T")[0],
+      stop_date: "", // Reset stop date
       refills_remaining: 0,
       prescription_number: "",
       pharmacy: "",
     });
     setEditingMedication(null);
+    setCreateAutoReminders(true); // Reset to true by default
   };
 
   const handleAddMedication = () => {
@@ -129,19 +180,162 @@ export default function Medications() {
     }
   };
 
+  const handleAddReminder = (medication) => {
+    setSelectedMedication(medication);
+    setReminderForm({
+      title: `Take ${medication.name}`,
+      reminder_date: new Date().toISOString().split("T")[0],
+      reminder_time: "",
+      is_recurring: false,
+      recurrence_pattern: "daily",
+      end_date: "",
+      description: `${medication.dosage} - ${medication.frequency}`,
+    });
+    setShowReminderModal(true);
+  };
+
+  // Function to sync existing medication time slots with calendar reminders
+  const handleSyncReminders = async (medication) => {
+    if (!medication.time_slots || medication.time_slots.length === 0) {
+      setToastMessage("No time slots found to sync.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      return;
+    }
+
+    try {
+      await createAutoRemindersForMedication(medication, medication.time_slots);
+
+      setToastMessage(
+        `Successfully synced ${medication.time_slots.length} reminders for ${medication.name}!`
+      );
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (error) {
+      console.error("Error syncing reminders:", error);
+      setToastMessage("Failed to sync reminders. Please try again.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
+  const handleSaveReminder = async (e) => {
+    e.preventDefault();
+
+    if (!selectedMedication) return;
+
+    try {
+      // Use the medication-specific endpoint which handles both regular and recurring reminders
+      const response = await request(
+        `/reminders/medication/${selectedMedication.id}`,
+        {
+          method: "POST",
+          body: JSON.stringify(reminderForm),
+        }
+      );
+
+      // Show different message for recurring vs single reminders
+      const successMessage = reminderForm.is_recurring
+        ? `Recurring reminder(s) created successfully! (${
+            Array.isArray(response) ? response.length : "Multiple"
+          } reminders)`
+        : "Reminder created successfully!";
+
+      setToastMessage(successMessage);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      setShowReminderModal(false);
+      setSelectedMedication(null);
+
+      // Reset the reminder form
+      setReminderForm({
+        title: "",
+        reminder_date: new Date().toISOString().split("T")[0],
+        reminder_time: "",
+        is_recurring: false,
+        recurrence_pattern: "daily",
+        end_date: "",
+        description: "",
+      });
+
+      // Refresh reminders to show the new ones in the calendar
+      await fetchReminders();
+
+      // Also invalidate the query cache for good measure
+      invalidateTags(["reminders", "todaySchedule", "upcomingReminders"]);
+    } catch (error) {
+      console.error("Error creating reminder:", error);
+      setToastMessage("Failed to create reminder. Please try again.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
+  // Function to automatically create reminders for medication time slots
+  const createAutoRemindersForMedication = async (medication, timeSlots) => {
+    console.log("createAutoRemindersForMedication called:", {
+      createAutoReminders,
+      medication,
+      timeSlots,
+      timeSlotsLength: timeSlots?.length,
+    });
+
+    if (!createAutoReminders || !timeSlots || timeSlots.length === 0) {
+      console.log("Early return from createAutoRemindersForMedication:", {
+        createAutoReminders,
+        hasTimeSlots: !!timeSlots,
+        timeSlotsLength: timeSlots?.length,
+      });
+      return;
+    }
+
+    try {
+      const reminderPromises = timeSlots.map((time) => {
+        const requestData = {
+          title: `Take ${medication.name}`,
+          reminder_date:
+            medication.start_date || new Date().toISOString().split("T")[0],
+          reminder_time: time,
+          is_recurring: true,
+          recurrence_pattern: "daily",
+          end_date: medication.stop_date || "", // Use stop date from medication
+          description: `${medication.dosage} - ${medication.frequency}`,
+        };
+
+        console.log("Creating reminder with data:", requestData);
+
+        return request(`/reminders/medication/${medication.id}`, {
+          method: "POST",
+          body: JSON.stringify(requestData),
+        });
+      });
+
+      await Promise.all(reminderPromises);
+
+      // Refresh reminders to show the new ones
+      await fetchReminders();
+      invalidateTags(["reminders", "todaySchedule", "upcomingReminders"]);
+
+      console.log(
+        `Created ${timeSlots.length} automatic reminders for ${medication.name}`
+      );
+    } catch (error) {
+      console.error("Error creating automatic reminders:", error);
+      // Don't throw the error to avoid interrupting the medication creation
+    }
+  };
+
   const handleSaveMedication = async (e) => {
     e.preventDefault();
 
     try {
       if (editingMedication) {
         // Update existing medication - include ID in URL
-        const { time_slots, ...medicationDataWithoutTimeSlots } =
-          medicationForm;
-        const success = await updateMedicationMutation.mutate(
-          medicationDataWithoutTimeSlots,
+        const updatedMedication = await updateMedicationMutation.mutate(
+          medicationForm,
           `/medications/${editingMedication.id}`
         );
-        if (success) {
+        if (updatedMedication) {
           setToastMessage("Medication updated successfully!");
           setShowToast(true);
           setIsAddModalOpen(false);
@@ -153,15 +347,38 @@ export default function Medications() {
           setTimeout(() => setShowToast(false), 3000);
         }
       } else {
-        // Add new medication
-        const { time_slots, ...medicationDataWithoutTimeSlots } =
-          medicationForm;
-        const success = await createMedicationMutation.mutate(
-          medicationDataWithoutTimeSlots
+        // Add new medication - include time_slots in the data sent to backend
+        const newMedication = await createMedicationMutation.mutate(
+          medicationForm
         );
-        if (success) {
-          // TODO: Handle time_slots creation separately if needed
-          setToastMessage("Medication added successfully!");
+        if (newMedication) {
+          // Create automatic reminders if time slots are provided and option is enabled
+          if (
+            medicationForm.time_slots &&
+            medicationForm.time_slots.length > 0 &&
+            createAutoReminders
+          ) {
+            console.log("Creating automatic reminders:", {
+              createAutoReminders,
+              timeSlots: medicationForm.time_slots,
+              medication: newMedication,
+            });
+            await createAutoRemindersForMedication(
+              newMedication,
+              medicationForm.time_slots
+            );
+            setToastMessage(
+              `Medication added successfully with ${medicationForm.time_slots.length} automatic reminders!`
+            );
+          } else {
+            console.log("No automatic reminders created:", {
+              createAutoReminders,
+              timeSlots: medicationForm.time_slots,
+              timeSlotsLength: medicationForm.time_slots?.length,
+            });
+            setToastMessage("Medication added successfully!");
+          }
+
           setShowToast(true);
           setIsAddModalOpen(false);
           resetForm();
@@ -283,6 +500,20 @@ export default function Medications() {
               <PlusIcon className="w-5 h-5" />
               Add Medication
             </button>
+          </div>
+        </div>
+
+        {/* Info Alert about Calendar Integration */}
+        <div className="alert alert-info mb-6">
+          <div>
+            <h3 className="font-bold">🔗 Calendar Integration Active</h3>
+            <div className="text-sm">
+              • Add time slots to automatically create daily reminders in your
+              calendar • Medications with linked reminders show a{" "}
+              <span className="badge badge-success badge-sm">🔔 count</span>{" "}
+              indicator • Use "Sync Time Reminders" for existing medications
+              with time slots
+            </div>
           </div>
         </div>
 
@@ -408,6 +639,19 @@ export default function Medications() {
                           <span className={getStatusBadge(medication.status)}>
                             {medication.status}
                           </span>
+                          {medicationHasReminders(medication.id) && (
+                            <div
+                              className="tooltip"
+                              data-tip={`${getMedicationReminderCount(
+                                medication.id
+                              )} active reminders`}
+                            >
+                              <span className="badge badge-success badge-sm gap-1">
+                                <BellIcon className="w-3 h-3" />
+                                {getMedicationReminderCount(medication.id)}
+                              </span>
+                            </div>
+                          )}
                           <div className="dropdown dropdown-end">
                             <label
                               tabIndex={0}
@@ -429,6 +673,30 @@ export default function Medications() {
                                   Edit
                                 </a>
                               </li>
+                              <li>
+                                <a
+                                  className="text-info"
+                                  onClick={() => handleAddReminder(medication)}
+                                >
+                                  <BellIcon className="w-4 h-4" />
+                                  Add Reminder
+                                </a>
+                              </li>
+                              {medication.time_slots &&
+                                medication.time_slots.length > 0 &&
+                                !medicationHasReminders(medication.id) && (
+                                  <li>
+                                    <a
+                                      className="text-success"
+                                      onClick={() =>
+                                        handleSyncReminders(medication)
+                                      }
+                                    >
+                                      <BellIcon className="w-4 h-4" />
+                                      Sync Time Reminders
+                                    </a>
+                                  </li>
+                                )}
                               <li>
                                 <a
                                   className="text-error"
@@ -635,6 +903,30 @@ export default function Medications() {
                   </div>
                 </div>
 
+                {/* Auto-create reminders option */}
+                {medicationForm.time_slots.length > 0 && (
+                  <div className="form-control">
+                    <label className="label cursor-pointer">
+                      <span className="label-text">
+                        🔔 Automatically create daily reminders for each
+                        scheduled time
+                      </span>
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-primary"
+                        checked={createAutoReminders}
+                        onChange={(e) =>
+                          setCreateAutoReminders(e.target.checked)
+                        }
+                      />
+                    </label>
+                    <div className="text-sm text-gray-500 mt-1">
+                      This will create recurring daily reminders in your
+                      calendar for each time slot
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="form-control">
                     <label className="label">
@@ -728,6 +1020,26 @@ export default function Medications() {
                       }
                     />
                   </div>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">Stop Date (Optional)</span>
+                      <span className="label-text-alt text-xs">
+                        For recurring reminders
+                      </span>
+                    </label>
+                    <input
+                      type="date"
+                      className="input input-bordered"
+                      value={medicationForm.stop_date}
+                      onChange={(e) =>
+                        setMedicationForm({
+                          ...medicationForm,
+                          stop_date: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
                 </div>
 
                 <div className="form-control">
@@ -757,6 +1069,164 @@ export default function Medications() {
                   </button>
                   <button type="submit" className="btn btn-primary">
                     {editingMedication ? "Update" : "Add"} Medication
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Add Reminder Modal */}
+        {showReminderModal && (
+          <div className="modal modal-open">
+            <div className="modal-box">
+              <h3 className="font-bold text-lg mb-4">
+                Add Reminder for {selectedMedication?.name}
+              </h3>
+              <form onSubmit={handleSaveReminder}>
+                <div className="form-control w-full max-w-xs mb-4">
+                  <label className="label">
+                    <span className="label-text">Reminder Title</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input input-bordered w-full max-w-xs"
+                    value={reminderForm.title}
+                    onChange={(e) =>
+                      setReminderForm({
+                        ...reminderForm,
+                        title: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="form-control w-full max-w-xs mb-4">
+                  <label className="label">
+                    <span className="label-text">Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="input input-bordered w-full max-w-xs"
+                    value={reminderForm.reminder_date}
+                    onChange={(e) =>
+                      setReminderForm({
+                        ...reminderForm,
+                        reminder_date: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="form-control w-full max-w-xs mb-4">
+                  <label className="label">
+                    <span className="label-text">Time</span>
+                  </label>
+                  <input
+                    type="time"
+                    className="input input-bordered w-full max-w-xs"
+                    value={reminderForm.reminder_time}
+                    onChange={(e) =>
+                      setReminderForm({
+                        ...reminderForm,
+                        reminder_time: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="form-control w-full max-w-xs mb-4">
+                  <label className="label cursor-pointer">
+                    <span className="label-text">Recurring Reminder</span>
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-primary"
+                      checked={reminderForm.is_recurring}
+                      onChange={(e) =>
+                        setReminderForm({
+                          ...reminderForm,
+                          is_recurring: e.target.checked,
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+
+                {reminderForm.is_recurring && (
+                  <>
+                    <div className="form-control w-full max-w-xs mb-4">
+                      <label className="label">
+                        <span className="label-text">Recurrence Pattern</span>
+                      </label>
+                      <select
+                        className="select select-bordered w-full max-w-xs"
+                        value={reminderForm.recurrence_pattern}
+                        onChange={(e) =>
+                          setReminderForm({
+                            ...reminderForm,
+                            recurrence_pattern: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="twice daily">Twice Daily</option>
+                        <option value="every 2 days">Every 2 Days</option>
+                        <option value="every 3 days">Every 3 Days</option>
+                      </select>
+                    </div>
+
+                    <div className="form-control w-full max-w-xs mb-4">
+                      <label className="label">
+                        <span className="label-text">End Date (Optional)</span>
+                      </label>
+                      <input
+                        type="date"
+                        className="input input-bordered w-full max-w-xs"
+                        value={reminderForm.end_date}
+                        onChange={(e) =>
+                          setReminderForm({
+                            ...reminderForm,
+                            end_date: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="form-control w-full max-w-xs mb-4">
+                  <label className="label">
+                    <span className="label-text">Description</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered"
+                    rows="3"
+                    value={reminderForm.description}
+                    onChange={(e) =>
+                      setReminderForm({
+                        ...reminderForm,
+                        description: e.target.value,
+                      })
+                    }
+                  ></textarea>
+                </div>
+
+                <div className="modal-action">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setShowReminderModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    Create Reminder
                   </button>
                 </div>
               </form>

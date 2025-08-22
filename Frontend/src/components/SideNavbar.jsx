@@ -20,16 +20,16 @@ export default function SideNavbar() {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: HomeIcon, path: "/dashboard" },
     {
-      id: "calendar_reminders",
-      label: "Calendar & Reminders",
-      icon: CalendarDaysIcon,
-      path: "/calendar",
-    },
-    {
       id: "medications",
       label: "Medications",
       icon: MedicationIcon,
       path: "/medications",
+    },
+    {
+      id: "calendar_reminders",
+      label: "Calendar & Reminders",
+      icon: CalendarDaysIcon,
+      path: "/calendar",
     },
     { id: "refills", label: "Refills", icon: ClockIcon, path: "/refills" },
     { id: "profile", label: "Profile", icon: UserIcon, path: "/profile" },

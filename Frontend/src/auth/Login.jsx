@@ -78,7 +78,6 @@ export default function Login() {
                   placeholder="Enter your email"
                 />
               </div>
-
               {/* Password Field */}
               <div className="form-control">
                 <label className="label" htmlFor="password">
@@ -95,7 +94,6 @@ export default function Login() {
                   placeholder="Enter your password"
                 />
               </div>
-
               {/* Error Message */}
               {error && (
                 <div className="alert alert-error shadow-lg">
@@ -115,7 +113,6 @@ export default function Login() {
                   <span className="text-error-content">{error}</span>
                 </div>
               )}
-
               {/* Submit Button */}
               <div className="form-control mt-6">
                 <button
@@ -148,8 +145,7 @@ export default function Login() {
                   )}
                 </button>
               </div>
-
-              {/* Demo Login Button
+              Demo Login Button
               <div className="form-control">
                 <button
                   type="button"
@@ -162,8 +158,7 @@ export default function Login() {
                 >
                   Fill Demo Credentials
                 </button>
-              </div> */}
-
+              </div>
               {/* Register Link */}
               <div className="divider text-base-content/50">OR</div>
               <div className="text-center">

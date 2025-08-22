@@ -2,20 +2,25 @@ import {
   ClockIcon,
   ShoppingCartIcon,
   BellIcon,
+  CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import useQuery from "../api/useQuery";
 import useMutation from "../api/useMutation";
+import { useApi } from "../api/ApiContext";
 
 export default function RefillsPage() {
+  const { request, invalidateTags } = useApi();
   const {
     data: refills = [],
     loading,
     error,
+    refetch,
   } = useQuery("/refills", "refills");
   const createReminderMutation = useMutation("POST", "/reminders", ["refills"]);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [updatingRefill, setUpdatingRefill] = useState(null);
 
   const handleSetReminder = async (refill) => {
     try {
@@ -43,33 +48,32 @@ export default function RefillsPage() {
   };
 
   const handleUpdateRefillStatus = async (refillId, status) => {
+    setUpdatingRefill(refillId);
     try {
-      const response = await fetch(
-        `http://localhost:3000/refills/${refillId}/status`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({ status }),
-        }
-      );
+      await request(`/refills/${refillId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
 
-      if (response.ok) {
-        setToastMessage(`Refill status updated to ${status}`);
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
-        // Refresh the data
-        window.location.reload();
-      } else {
-        throw new Error("Failed to update refill status");
+      let message = `Refill status updated to ${status}`;
+      if (status === "picked_up") {
+        message = "Refill picked up! Medication stock has been updated.";
       }
+
+      setToastMessage(message);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+
+      // Refresh the data using proper query invalidation
+      invalidateTags(["refills", "medications"]);
+      refetch();
     } catch (error) {
       console.error("Failed to update refill status:", error);
       setToastMessage("Failed to update refill status");
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
+    } finally {
+      setUpdatingRefill(null);
     }
   };
 
@@ -260,12 +264,22 @@ export default function RefillsPage() {
 
                       {refill.status === "ordered" && (
                         <button
-                          className="btn btn-success btn-sm"
+                          className={`btn btn-success btn-sm ${
+                            updatingRefill === refill.id ? "loading" : ""
+                          }`}
+                          disabled={updatingRefill === refill.id}
                           onClick={() =>
                             handleUpdateRefillStatus(refill.id, "picked_up")
                           }
                         >
-                          Mark Picked Up
+                          {updatingRefill === refill.id ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          ) : (
+                            <CheckCircleIcon className="w-4 h-4" />
+                          )}
+                          {updatingRefill === refill.id
+                            ? "Updating..."
+                            : "Mark Picked Up"}
                         </button>
                       )}
                     </div>

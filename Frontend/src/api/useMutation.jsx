@@ -24,7 +24,7 @@ export default function useMutation(method, resource, tagsToInvalidate) {
       });
       setData(result);
       invalidateTags(tagsToInvalidate);
-      return true;
+      return result; // Return the actual data instead of true
     } catch (e) {
       console.error(e);
       setError(e.message);
@@ -32,7 +32,7 @@ export default function useMutation(method, resource, tagsToInvalidate) {
       setLoading(false);
     }
 
-    return false;
+    return null; // Return null instead of false to indicate failure
   };
 
   return { mutate, data, loading, error };

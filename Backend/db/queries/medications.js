@@ -49,6 +49,7 @@ export async function createMedication(medicationData) {
     notes,
     prescribed_by,
     start_date,
+    stop_date,
     refills_remaining = 0,
     prescription_number,
     pharmacy,
@@ -57,9 +58,9 @@ export async function createMedication(medicationData) {
   const sql = `
     INSERT INTO medications (
       user_id, name, dosage, frequency, current_stock, status, color, 
-      notes, prescribed_by, start_date, refills_remaining, prescription_number, pharmacy
+      notes, prescribed_by, start_date, stop_date, refills_remaining, prescription_number, pharmacy
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
     RETURNING *
   `;
 
@@ -76,6 +77,7 @@ export async function createMedication(medicationData) {
     notes,
     prescribed_by,
     start_date,
+    stop_date,
     refills_remaining,
     prescription_number,
     pharmacy,
@@ -92,7 +94,12 @@ export async function updateMedication(medicationId, userId, updateData) {
 
   // Build dynamic update query
   Object.entries(updateData).forEach(([key, value]) => {
-    if (value !== undefined && key !== "id" && key !== "user_id") {
+    if (
+      value !== undefined &&
+      key !== "id" &&
+      key !== "user_id" &&
+      key !== "updated_at"
+    ) {
       fields.push(`${key} = $${paramCount}`);
       values.push(value);
       paramCount++;
@@ -205,4 +212,19 @@ export async function getTodayMedicationSchedule(userId) {
   `;
   const { rows } = await db.query(sql, [userId]);
   return rows;
+}
+
+// Delete all schedules for a medication
+export async function deleteMedicationSchedules(medicationId, userId) {
+  const sql = `
+    UPDATE medication_schedules 
+    SET is_active = false
+    WHERE medication_id = $1 
+    AND medication_id IN (
+      SELECT id FROM medications WHERE user_id = $2
+    )
+    RETURNING id
+  `;
+  const { rows } = await db.query(sql, [medicationId, userId]);
+  return rows.length > 0;
 }
